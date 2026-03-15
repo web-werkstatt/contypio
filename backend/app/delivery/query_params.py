@@ -153,6 +153,18 @@ def decode_cursor(cursor: str) -> dict | None:
 
 
 @dataclass
+class DepthParams:
+    """Relation depth control: how many levels of relations to resolve.
+
+    depth=0: No relations/media resolved (IDs only)
+    depth=1: Direct relations resolved, nested as IDs
+    depth=2: Default (current behavior)
+    depth=3-5: Deeper resolution for complex models
+    """
+    depth: int = Query(default=2, ge=0, le=5, description="Relation resolution depth (0=IDs only, 2=default, max 5)")
+
+
+@dataclass
 class CursorParams:
     """Optional cursor-based pagination. When cursor is set, offset is ignored."""
     cursor: str | None = Query(default=None, description="Opaque cursor from previous response (overrides offset)")

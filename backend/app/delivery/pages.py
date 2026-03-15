@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -13,7 +11,7 @@ from app.core.content_i18n import (
 )
 from app.core.database import get_db
 from app.delivery.cache_headers import cached_json_response
-from app.delivery.query_params import LocaleParams, PaginationParams, SparseFieldsParams, paginated_response
+from app.delivery.query_params import DepthParams, LocaleParams, PaginationParams, SparseFieldsParams, paginated_response
 from app.delivery.resolve import build_media_cache, collect_image_ids, resolve_dynamic_blocks, resolve_grid_layouts, resolve_sections
 from app.delivery.tenant_resolver import get_delivery_tenant
 from app.models.page import CmsPage
@@ -69,6 +67,7 @@ async def _fetch_single_page(
     db: AsyncSession,
     locale_param: str | None = None,
     path: str | None = None,
+    depth: int = 2,
 ):
     """Shared logic for fetching a single published page by slug or path."""
     tenant_id = tenant.id
@@ -90,12 +89,15 @@ async def _fetch_single_page(
     needs_sections = field_set is None or "sections" in field_set
 
     sections = page.sections or []
-    if needs_sections:
+    if needs_sections and depth >= 1:
         sections = await resolve_dynamic_blocks(sections, tenant_id=tenant_id, db=db)
         image_ids = await collect_image_ids(sections)
         media_cache = await build_media_cache(image_ids, tenant_id, db)
         resolved = resolve_sections(sections, media_cache)
         resolved = resolve_grid_layouts(resolved, include_css=include_css)
+    elif needs_sections and depth == 0:
+        # depth=0: return raw sections without resolving media/relations
+        resolved = sections
     else:
         resolved = []
 
@@ -126,17 +128,18 @@ async def _fetch_single_page(
     return cached_json_response(response, request, "page", updated_at=page.updated_at)
 
 
-@router.get("/pages/{slug}", summary="Get page by slug", description="Fetch a single published page by its slug. Returns full page with resolved sections, media and dynamic blocks.")
+@router.get("/pages/{slug}", summary="Get page by slug", description="Fetch a single published page by its slug. Returns full page with resolved sections, media and dynamic blocks. Use ?depth=0-5 to control relation resolution.")
 async def get_page_by_slug(
     slug: str,
     request: Request,
     include_css: bool = False,
     sparse: SparseFieldsParams = Depends(),
     locale_params: LocaleParams = Depends(),
+    depth_params: DepthParams = Depends(),
     tenant: CmsTenant = Depends(get_delivery_tenant),
     db: AsyncSession = Depends(get_db),
 ):
-    return await _fetch_single_page(slug, request, include_css, sparse, tenant, db, locale_param=locale_params.locale)
+    return await _fetch_single_page(slug, request, include_css, sparse, tenant, db, locale_param=locale_params.locale, depth=depth_params.depth)
 
 
 @router.get("/page", summary="Get page by query param (deprecated)", description="Deprecated: Use /content/pages/{slug} instead. Kept for backwards compatibility.", deprecated=True)
@@ -147,12 +150,13 @@ async def get_page(
     include_css: bool = False,
     sparse: SparseFieldsParams = Depends(),
     locale_params: LocaleParams = Depends(),
+    depth_params: DepthParams = Depends(),
     tenant: CmsTenant = Depends(get_delivery_tenant),
     db: AsyncSession = Depends(get_db),
 ):
     if not path and not slug:
         raise HTTPException(status_code=400, detail="path or slug required")
-    return await _fetch_single_page(slug or "", request, include_css, sparse, tenant, db, locale_param=locale_params.locale, path=path)
+    return await _fetch_single_page(slug or "", request, include_css, sparse, tenant, db, locale_param=locale_params.locale, path=path, depth=depth_params.depth)
 
 
 @router.get("/pages", summary="List published pages", description="List all published pages with optional filtering by page_type or parent. No section resolution for performance.")
@@ -277,6 +281,7 @@ class BatchPagesRequest(BaseModel):
     fields: str | None = Field(default=None, description="Comma-separated sparse fields")
     include_css: bool = Field(default=False, description="Include CSS for grid layouts")
     locale: str | None = Field(default=None, description="BCP 47 locale (e.g. de, en, de-AT)")
+    depth: int = Field(default=2, ge=0, le=5, description="Relation resolution depth (0-5, default 2)")
 
 
 @router.post("/pages/batch", summary="Batch fetch pages", description="Fetch multiple pages by slug in a single request. Max 50 slugs. Returns a map of slug→page (null if not found).")
@@ -314,12 +319,14 @@ async def batch_pages(
             continue
 
         sections = page.sections or []
-        if needs_sections:
+        if needs_sections and body.depth >= 1:
             sections = await resolve_dynamic_blocks(sections, tenant_id=tenant_id, db=db)
             image_ids = await collect_image_ids(sections)
             media_cache = await build_media_cache(image_ids, tenant_id, db)
             resolved = resolve_sections(sections, media_cache)
             resolved = resolve_grid_layouts(resolved, include_css=body.include_css)
+        elif needs_sections and body.depth == 0:
+            resolved = sections
         else:
             resolved = []
 

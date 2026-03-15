@@ -17,7 +17,7 @@ from app.core.content_i18n import (
 )
 from app.core.database import get_db
 from app.delivery.cache_headers import cached_json_response
-from app.delivery.query_params import CursorParams, FilterParams, LocaleParams, PaginationParams, SortParams, decode_cursor, encode_cursor, paginated_response
+from app.delivery.query_params import CursorParams, DepthParams, FilterParams, LocaleParams, PaginationParams, SortParams, decode_cursor, encode_cursor, paginated_response
 from app.delivery.tenant_resolver import get_delivery_tenant, get_delivery_tenant_id
 from app.models.collection import CmsCollection, CmsCollectionSchema
 from app.models.media import CmsMedia
@@ -252,6 +252,7 @@ async def get_collection(
     cursor_params: CursorParams = Depends(),
     search: str | None = Query(default=None, description="Search in title and data"),
     locale_params: LocaleParams = Depends(),
+    depth_params: DepthParams = Depends(),
     tenant_id: UUID = Depends(get_delivery_tenant_id),
     db: AsyncSession = Depends(get_db),
 ):
@@ -357,10 +358,13 @@ async def get_collection(
         )
         translatable_data_fields = get_translatable_data_fields(schema_fields)
 
+    depth = depth_params.depth
     resolved_items = []
     for i in items:
-        data = await _resolve_media_ids(i.data or {}, schema_fields, tenant_id, db)
-        data = await _resolve_relation_ids(data, schema_fields, tenant_id, db)
+        data = i.data or {}
+        if depth >= 1:
+            data = await _resolve_media_ids(data, schema_fields, tenant_id, db)
+            data = await _resolve_relation_ids(data, schema_fields, tenant_id, db)
         item_dict: dict = {
             "id": i.id,
             "title": i.title,
@@ -414,7 +418,7 @@ async def get_collection(
     return cached_json_response(response_data, request, "collection")
 
 
-@collections_plural_router.get("/{key}", summary="Get collection items", description="Fetch paginated items from a collection by key. Supports sorting, search, filtering, cursor pagination and sparse fields. Resolves media and relation references automatically.")
+@collections_plural_router.get("/{key}", summary="Get collection items", description="Fetch paginated items from a collection by key. Supports sorting, search, filtering, cursor pagination, depth control and sparse fields. Resolves media and relation references automatically.")
 async def get_collection_plural(
     key: str,
     request: Request,
@@ -423,13 +427,14 @@ async def get_collection_plural(
     cursor_params: CursorParams = Depends(),
     search: str | None = Query(default=None, description="Search in title and data"),
     locale_params: LocaleParams = Depends(),
+    depth_params: DepthParams = Depends(),
     tenant: CmsTenant = Depends(get_delivery_tenant),
     db: AsyncSession = Depends(get_db),
 ):
     """Plural URL alias: /content/collections/{key} -> delegates to get_collection."""
     return await get_collection(
         key, request, pagination, sorting, cursor_params, search,
-        locale_params=locale_params, tenant_id=tenant.id, db=db,
+        locale_params=locale_params, depth_params=depth_params, tenant_id=tenant.id, db=db,
     )
 
 
@@ -442,6 +447,7 @@ class BatchCollectionRequest(BaseModel):
     slugs: list[str] | None = Field(default=None, max_length=100, description="Item slugs to fetch (max 100)")
     fields: str | None = Field(default=None, description="Comma-separated sparse fields")
     locale: str | None = Field(default=None, description="BCP 47 locale")
+    depth: int = Field(default=2, ge=0, le=5, description="Relation resolution depth (0-5, default 2)")
 
 
 @collections_plural_router.post("/{key}/batch", summary="Batch fetch collection items", description="Fetch multiple items by ID or slug. Max 100. Exactly one of ids or slugs must be provided.")
@@ -514,8 +520,10 @@ async def batch_collection_items(
     # Resolve items
     items: list[dict] = []
     for i in db_items:
-        data = await _resolve_media_ids(i.data or {}, schema_fields, tenant_id, db)
-        data = await _resolve_relation_ids(data, schema_fields, tenant_id, db)
+        data = i.data or {}
+        if body.depth >= 1:
+            data = await _resolve_media_ids(data, schema_fields, tenant_id, db)
+            data = await _resolve_relation_ids(data, schema_fields, tenant_id, db)
         item_dict: dict = {
             "id": i.id,
             "title": i.title,

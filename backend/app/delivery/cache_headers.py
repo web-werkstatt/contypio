@@ -36,6 +36,7 @@ CACHE_PROFILES = {
     "collection": "public, max-age=60, stale-while-revalidate=300",
     "globals": "public, max-age=60, stale-while-revalidate=300",
     "tree": "public, max-age=120, stale-while-revalidate=600",
+    "schema": "public, max-age=300, stale-while-revalidate=600",
 }
 
 

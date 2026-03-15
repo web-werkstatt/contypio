@@ -196,6 +196,7 @@ from app.api.globals import router as globals_router
 from app.delivery.collections import router as delivery_collections_router, collections_plural_router as delivery_collections_plural_router
 from app.delivery.globals import router as delivery_globals_router
 from app.delivery.locales import router as delivery_locales_router
+from app.delivery.schema import router as delivery_schema_router
 from app.api.imports import router as import_router, export_router
 from app.api.tenants import router as tenants_router
 from app.api.page_versions import router as page_versions_router
@@ -229,6 +230,7 @@ app.include_router(delivery_collections_router)
 app.include_router(delivery_collections_plural_router)
 app.include_router(delivery_globals_router)
 app.include_router(delivery_locales_router)
+app.include_router(delivery_schema_router)
 app.include_router(import_router)
 app.include_router(export_router)
 app.include_router(tenants_router)
