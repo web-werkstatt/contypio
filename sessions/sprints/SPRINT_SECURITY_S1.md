@@ -1,7 +1,7 @@
 # Security Sprint 1: Infrastruktur-Baseline
 
 **Erstellt:** 2026-03-15
-**Status:** IN ARBEIT
+**Status:** DONE
 **Referenz:** docs/api-roadmap-v1.md (Teil 2, Sprint 1)
 **Geschaetzter Aufwand:** 2-3 Tage
 **OWASP-Bezug:** API8:2023 Security Misconfiguration, API1:2023 BOLA, API3:2023 BOPLA

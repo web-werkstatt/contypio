@@ -367,7 +367,7 @@
             <h1><span>Contypio</span> — Launch Tracker</h1>
             <p>Hybrid Headless CMS: Content Modeling + Page Builder</p>
             <div class="meta-bar">
-                <span>Stand: 15. Mrz 2026</span>
+                <span>Stand: {{DATE}}</span>
                 <span>Solo-Entwickler</span>
                 <span>Python + React + Docker</span>
                 <span>MIT-Lizenz</span>
@@ -377,7 +377,7 @@
         <!-- Stats -->
         <div class="stats">
             <div class="stat">
-                <div class="stat-value">27</div>
+                <div class="stat-value">{{SPRINTS_DONE}}</div>
                 <div class="stat-label">Sprints done</div>
             </div>
             <div class="stat">
@@ -393,7 +393,7 @@
                 <div class="stat-label">API Endpoints</div>
             </div>
             <div class="stat">
-                <div class="stat-value">v0.2.0</div>
+                <div class="stat-value">{{SDK_VERSION}}</div>
                 <div class="stat-label">SDK Version</div>
             </div>
         </div>
@@ -402,15 +402,15 @@
         <div class="progress-section">
             <div class="progress-header">
                 <h2>Gesamtfortschritt bis Launch</h2>
-                <div class="progress-pct">87%</div>
+                <div class="progress-pct">{{PROGRESS}}%</div>
             </div>
             <div class="progress-bar-bg">
-                <div class="progress-bar-fill" style="width: 87%"></div>
+                <div class="progress-bar-fill" style="width: {{PROGRESS}}%"></div>
             </div>
             <div class="progress-legend">
-                <span class="legend-done">27 Sprints fertig</span>
-                <span class="legend-progress">0 Sprints aktiv</span>
-                <span class="legend-planned">4 Sprints geplant</span>
+                <span class="legend-done">{{SPRINTS_DONE}} Sprints fertig</span>
+                <span class="legend-progress">{{SPRINTS_ACTIVE}} Sprints aktiv</span>
+                <span class="legend-planned">{{SPRINTS_PLANNED}} Sprints geplant</span>
             </div>
         </div>
 
@@ -725,42 +725,7 @@
                 <h3>Sprint-Status (aus Repo)</h3>
             </div>
             <ul class="task-list">
-                <li>
-                    <div class="task-icon icon-done">&#10003;</div>
-                    <div class="task-label">
-                        <strong>Sprint: API Evolution — Batch, Cursor-Pagination, SDK v0.2</strong>
-                    </div>
-                </li>
-                <li>
-                    <div class="task-icon icon-planned">&#8226;</div>
-                    <div class="task-label">
-                        <strong>Sprint: Contypio GitHub-Launch — Technische Vorbereitung</strong>
-                    </div>
-                </li>
-                <li>
-                    <div class="task-icon icon-done">&#10003;</div>
-                    <div class="task-label">
-                        <strong>Security Sprint 1: Infrastruktur-Baseline</strong>
-                    </div>
-                </li>
-                <li>
-                    <div class="task-icon icon-planned">&#8226;</div>
-                    <div class="task-label">
-                        <strong>Security Sprint 2: Key-Management & Rate Limiting</strong>
-                    </div>
-                </li>
-                <li>
-                    <div class="task-icon icon-planned">&#8226;</div>
-                    <div class="task-label">
-                        <strong>Security Sprint 3: Response-Security & Webhooks</strong>
-                    </div>
-                </li>
-                <li>
-                    <div class="task-icon icon-planned">&#8226;</div>
-                    <div class="task-label">
-                        <strong>Security Sprint 4: Tenant-Isolation & Audit</strong>
-                    </div>
-                </li>
+{{SPRINT_ROWS}}
             </ul>
         </div>
 
@@ -781,7 +746,7 @@
 
         <footer>
             Contypio &mdash; Hybrid Headless CMS &mdash; Self-Hosted, EU-konform, MIT-Lizenz<br>
-            Internes Launch-Tracking &mdash; Letzte Aktualisierung: 15. Mrz 2026 &mdash; Auto-generiert
+            Internes Launch-Tracking &mdash; Letzte Aktualisierung: {{DATE}} &mdash; Auto-generiert
         </footer>
     </div>
 </body>

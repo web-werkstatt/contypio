@@ -145,8 +145,12 @@ sync_frontend() {
 # SYNC: LANDING PAGE (SaaS Server)
 # ========================================
 sync_landing() {
-    step "Quick-Sync: Contypio Landing Page (rsync)"
+    step "Quick-Sync: Contypio Landing Page (build + rsync)"
     timer_start
+
+    info "Generating index.html from template + repo data"
+    python3 "${PROJECT_ROOT}/infrastructure/landing/build.py"
+    success "HTML generiert"
 
     info "Sync landing/ -> ${LANDING_SSH_HOST}:${LANDING_REMOTE_DIR}/"
     rsync -avz \

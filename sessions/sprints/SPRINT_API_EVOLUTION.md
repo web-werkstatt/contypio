@@ -2,7 +2,7 @@
 
 **Erstellt:** 2026-03-15
 **Branch:** main
-**Status:** IN ARBEIT
+**Status:** DONE
 **Abhaengigkeit:** SDK v0.1.0 (DONE, Commit 59dc944)
 **Geschaetzter Aufwand:** 1-2 Sessions
 
