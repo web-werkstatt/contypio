@@ -42,6 +42,10 @@ class CmsTenant(Base):
     stripe_subscription_id: Mapped[str | None] = mapped_column(String(255))
     stripe_price_id: Mapped[str | None] = mapped_column(String(255))
 
+    # CORS (S3 Security Sprint 1)
+    cors_origins: Mapped[list] = mapped_column(JSON, default=list)  # ["https://www.example.com"]
+    cors_max_age: Mapped[int] = mapped_column(Integer, default=86400)  # Preflight cache seconds
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

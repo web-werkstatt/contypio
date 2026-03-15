@@ -19,9 +19,9 @@ CMS_ADMIN_SERVICE="irtours-cms-admin"
 HEALTH_URL="https://cms.ir-tours.de/health"
 HEALTH_TIMEOUT=30
 
-# Landing page (SaaS Server)
+# Landing page (SaaS Server — volume-mounted in Caddy container)
 LANDING_SSH_HOST="docker-vm"
-LANDING_REMOTE_DIR="/opt/webideas24/contypio-launch"
+LANDING_REMOTE_DIR="/data/contypio-launch"
 LANDING_URL="https://headless-cms.webideas24.com/"
 
 # ========================================

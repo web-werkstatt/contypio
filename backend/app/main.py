@@ -2,7 +2,6 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 
@@ -105,21 +104,20 @@ register_error_handlers(app)
 from app.core.rate_limit import RateLimitMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.middleware.https_enforcement import HTTPSEnforcementMiddleware
+from app.middleware.tenant_cors import TenantAwareCORSMiddleware
 
+# ---------------------------------------------------------------------------
 # Middleware stack (LIFO: last added = first executed on request)
 # Order matters for security — see docs/api-roadmap-v1.md
+# ---------------------------------------------------------------------------
 
 # Inner layers (executed last on request, first on response)
 app.add_middleware(LocaleMiddleware)
 app.add_middleware(RateLimitMiddleware)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "Accept-Language", "X-Tenant"],
-    max_age=86400,  # Preflight cache: 24h
-)
+
+# S3: Tenant-aware CORS (replaces FastAPI CORSMiddleware)
+# Origins loaded per tenant from DB. Default: deny all.
+app = TenantAwareCORSMiddleware(app)
 
 # Outer layers (executed first on request)
 # S1: API-specific security headers (CSP, Permissions-Policy, etc.)
