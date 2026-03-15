@@ -1,0 +1,138 @@
+/* ==========================================================================
+   CMS Block Styles — Source of Truth
+   Contypio CMS · Frontend-agnostic
+
+   Diese Datei definiert das visuelle Rendering aller CMS-Blöcke.
+   Sie wird von allen Frontends (Astro, Next.js, Hugo, etc.) konsumiert.
+   NICHT hier: Editor-spezifische Styles (Hover, Selection, Drag-Handles).
+   ========================================================================== */
+
+/* ===== Section Grid System ===== */
+.cms-section-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.cms-columns {
+  display: grid;
+  gap: 24px;
+}
+.cms-columns[data-layout="full"]               { grid-template-columns: 1fr; }
+.cms-columns[data-layout="two-col-equal"]      { grid-template-columns: 1fr 1fr; }
+.cms-columns[data-layout="two-col-left-wide"]  { grid-template-columns: 2fr 1fr; }
+.cms-columns[data-layout="two-col-right-wide"] { grid-template-columns: 1fr 2fr; }
+.cms-columns[data-layout="three-col-equal"]    { grid-template-columns: 1fr 1fr 1fr; }
+.cms-columns[data-layout="four-col-equal"]     { grid-template-columns: repeat(4, 1fr); }
+
+@media (max-width: 767px) {
+  .cms-columns[data-layout] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ===== Hero Block ===== */
+.cms-block-hero { position: relative; }
+.cms-hero-image { width: 100%; height: auto; display: block; }
+.cms-hero-content { padding: 20px 0; }
+.cms-hero-content h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
+.cms-hero-subline { font-size: 1.1rem; color: #6b7280; }
+
+/* ===== Rich Text Block ===== */
+.cms-block-richtext h2 { margin-bottom: 12px; font-size: 1.5rem; }
+.cms-block-richtext p { margin-bottom: 8px; }
+
+/* ===== Image Block ===== */
+.cms-block-image img { width: 100%; height: auto; display: block; }
+.cms-block-image figcaption { font-size: 0.875rem; color: #666; margin-top: 8px; }
+
+/* ===== Cards Block ===== */
+.cms-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+.cms-card { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+.cms-card img { width: 100%; height: 200px; object-fit: cover; }
+.cms-card h3, .cms-card p, .cms-card a { padding: 0 16px; }
+.cms-card h3 { padding-top: 12px; font-size: 15px; }
+.cms-card p { font-size: 14px; color: #6b7280; padding-bottom: 12px; }
+
+/* ===== CTA Block ===== */
+.cms-block-cta { text-align: center; }
+.cms-cta-button { display: inline-block; padding: 12px 32px; background: #2563eb; color: #fff; border-radius: 6px; text-decoration: none; }
+.cms-cta-secondary { background: #f3f4f6 !important; color: #1f2937 !important; border: 1px solid #d1d5db; }
+
+/* ===== FAQ Block ===== */
+.cms-faq-item { border-bottom: 1px solid #e5e7eb; padding: 12px 0; }
+.cms-faq-item summary { cursor: pointer; font-weight: 600; }
+
+/* ===== Gallery Block ===== */
+.cms-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.cms-gallery-grid img { width: 100%; height: auto; }
+
+/* ===== Newsletter Block ===== */
+.cms-block-newsletter { text-align: center; padding: 32px 20px; background: #f9fafb; border-radius: 8px; }
+.cms-newsletter-form { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+.cms-newsletter-form input { padding: 8px 16px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+.cms-newsletter-form button { padding: 8px 20px; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+
+/* ===== Trust Strip Block ===== */
+.cms-block-trust-strip { padding: 24px 0; }
+.cms-block-trust-strip h2 { text-align: center; margin-bottom: 20px; font-size: 1.25rem; }
+.cms-trust-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.cms-trust-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: #f0fdf4; border-radius: 8px; }
+.cms-trust-icon { color: #16a34a; font-size: 18px; font-weight: bold; flex-shrink: 0; }
+.cms-trust-item strong { display: block; font-size: 14px; }
+.cms-trust-item span { font-size: 12px; color: #6b7280; }
+
+/* ===== Hero Slider Block ===== */
+.cms-block-hero-slider { position: relative; }
+.cms-hero-slide { position: relative; }
+.cms-slider-dots { display: flex; justify-content: center; gap: 6px; padding: 12px 0; }
+.cms-dot { width: 8px; height: 8px; border-radius: 50%; background: #d1d5db; display: inline-block; }
+.cms-dot-active { background: #2563eb; }
+
+/* ===== Trip Cards Block ===== */
+.cms-block-trips h2 { margin-bottom: 16px; font-size: 1.5rem; }
+.cms-trips-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+.cms-trip-card { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+.cms-trip-card img { width: 100%; height: 180px; object-fit: cover; }
+.cms-trip-info { padding: 12px 16px; }
+.cms-trip-info h3 { font-size: 15px; margin-bottom: 4px; }
+.cms-trip-price { font-size: 14px; color: #2563eb; font-weight: 600; }
+
+/* ===== Collection Blocks ===== */
+.cms-block-collection h2 { margin-bottom: 16px; font-size: 1.5rem; }
+
+/* ===== Tiles Blocks ===== */
+.cms-block-tiles h2 { margin-bottom: 16px; font-size: 1.5rem; }
+.cms-tiles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.cms-tile { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; }
+.cms-tile img { width: 100%; height: 100%; object-fit: cover; }
+.cms-tile-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 8px 12px; background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  color: #fff; font-size: 14px; font-weight: 600;
+}
+
+/* ===== Magazine Teaser Block ===== */
+.cms-block-magazine h2 { margin-bottom: 16px; font-size: 1.5rem; }
+
+/* ===== Placeholders (Preview/Editor) ===== */
+.cms-placeholder {
+  width: 100%; height: 200px; background: #f3f4f6;
+  display: flex; align-items: center; justify-content: center;
+  color: #9ca3af; font-size: 14px; border-radius: 6px;
+}
+.cms-placeholder-wide { height: 300px; }
+
+.cms-data-placeholder {
+  padding: 32px 20px; background: #f0f9ff; border: 2px dashed #93c5fd;
+  border-radius: 8px; text-align: center; color: #3b82f6; font-size: 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.cms-data-hint { font-size: 12px; color: #6b7280; }
+
+/* ===== Unknown Block Fallback ===== */
+.cms-block-unknown {
+  padding: 16px; background: #f9fafb; border: 1px dashed #d1d5db;
+  border-radius: 6px; color: #6b7280; font-size: 13px;
+  display: flex; align-items: center; gap: 8px;
+}
+.cms-block-unknown span { font-size: 11px; }

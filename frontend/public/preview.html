@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Vorschau</title>
+  <link rel="stylesheet" href="/static/css/cms-blocks.css">
+  <style>
+    /* Reset + Base (preview-spezifisch) */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6; color: #1f2937; background: #fff;
+    }
+    img { max-width: 100%; height: auto; }
+    a { color: #2563eb; }
+
+    /* Preview-spezifische Styles */
+    .preview-empty {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 300px; color: #9ca3af; text-align: center;
+    }
+    .preview-empty p { font-size: 14px; }
+    .preview-empty .sub { font-size: 12px; margin-top: 4px; }
+
+    /* Visual Editing: Hover Highlight */
+    .cms-block[data-block-id] {
+      position: relative;
+      transition: outline 0.15s ease, outline-offset 0.15s ease;
+      outline: 2px solid transparent;
+      outline-offset: 2px;
+      cursor: pointer;
+    }
+    .cms-block[data-block-id]:hover {
+      outline-color: #3b82f6;
+      outline-offset: 4px;
+    }
+    .cms-block[data-block-id]:hover::after {
+      content: attr(data-block-label);
+      position: absolute;
+      top: -2px;
+      right: 4px;
+      transform: translateY(-100%);
+      background: #3b82f6;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px 4px 0 0;
+      pointer-events: none;
+      white-space: nowrap;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    .cms-block[data-block-id].cms-block-selected {
+      outline-color: #2563eb;
+      outline-offset: 4px;
+    }
+    .cms-block[data-block-id].cms-block-selected::after {
+      content: attr(data-block-label);
+      position: absolute;
+      top: -2px;
+      right: 4px;
+      transform: translateY(-100%);
+      background: #2563eb;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px 4px 0 0;
+      pointer-events: none;
+      white-space: nowrap;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    @keyframes cms-block-pulse {
+      0% { outline-color: #2563eb; }
+      50% { outline-color: #93c5fd; }
+      100% { outline-color: #2563eb; }
+    }
+    .cms-block[data-block-id].cms-block-flash {
+      animation: cms-block-pulse 0.6s ease-in-out 2;
+      outline-offset: 4px;
+      outline-color: #2563eb;
+    }
+  </style>
+</head>
+<body>
+  <div id="preview-root"></div>
+  <script>
+    // Minimal preview renderer - no framework needed
+    const root = document.getElementById('preview-root');
+    const isCleanMode = new URLSearchParams(window.location.search).get('mode') === 'clean';
+
+    // Im Clean-Modus: Block-Highlighting CSS deaktivieren
+    if (isCleanMode) {
+      const style = document.createElement('style');
+      style.textContent = '.cms-block[data-block-id] { outline: none !important; cursor: default !important; } .cms-block[data-block-id]:hover { outline-color: transparent !important; } .cms-block[data-block-id]:hover::after, .cms-block[data-block-id].cms-block-selected::after { display: none !important; }';
+      document.head.appendChild(style);
+    }
+
+    function str(val) { return val == null ? '' : String(val); }
+    function has(val) { return val != null && val !== '' && val !== false; }
+
+    const BLOCK_LABELS = {
+      hero: 'Hero', richText: 'Text', image: 'Bild', cards: 'Karten', cta: 'Call-to-Action',
+      faq: 'FAQ', gallery: 'Galerie', newsletter: 'Newsletter', trustStrip: 'Trust',
+      heroSlider: 'Hero Slider', featuredTrips: 'Reisen', tripListing: 'Reiseliste',
+      featuredItems: 'Einträge', collectionListing: 'Collection', collectionTiles: 'Kacheln',
+      destinationTiles: 'Reiseziele', inspirationTiles: 'Inspiration', magazineTeaser: 'Magazin',
+    };
+
+    function renderBlock(block) {
+      const { blockType, data = {} } = block;
+      const bid = block.id || '';
+      const blabel = BLOCK_LABELS[blockType] || blockType;
+      const image = data.image;
+
+      switch (blockType) {
+        case 'hero':
+          return `<div class="cms-block" data-block-id="${bid}" data-block-label="${blabel}" data-block-type="hero"><div class="cms-block-hero">
+            ${image?.url ? `<img src="${image.url}" alt="${str(image.alt || data.h1)}" class="cms-hero-image">` : ''}
+            <div class="cms-hero-content">
+              ${has(data.h1) ? `<h1>${str(data.h1)}</h1>` : ''}
+              ${has(data.subline) ? `<p class="cms-hero-subline">${str(data.subline)}</p>` : ''}
+            </div></div></div>`;
+
+        case 'richText':
+          return `<div class="cms-block" data-block-id="${bid}" data-block-label="${blabel}" data-block-type="richText"><div class="cms-block-richtext">
+            ${has(data.title) ? `<h2>${str(data.title)}</h2>` : ''}
+            <div>${str(data.content)}</div></div></div>`;
+
+        case 'image':
+          return `<div class="cms-block" data-block-id="${bid}" data-block-label="${blabel}" data-block-type="image"><figure class="cms-block-image">
+            ${image?.url ? `<img src="${image.url}" alt="${str(data.alt || image.alt)}" loading="lazy">` :
+              has(data.imageId) ? '<div class="cms-placeholder">Bild wird geladen...</div>' : ''}
+            ${has(data.caption) ? `<figcaption>${str(data.caption)}</figcaption>` : ''}
+          </figure></div>`;
+
+        case 'cards': {
+          const items = data.items || [];
+          return `<div class="cms-block" data-block-id="${bid}" data-block-label="${blabel}" data-block-type="cards"><div class="cms-block-cards">
+            ${has(data.title) ? `<h2>${str(data.title)}</h2>` : ''}
+            <div class="cms-cards-grid">${items.map(item => `<div class="cms-card">
+              ${item.image?.url ? `<img src="${item.image.url}" alt="${str(item.title)}" loading="lazy">` : ''}
+              ${item.title ? `<h3>${item.title}</h3>` : ''}
+              ${item.text ? `<p>${item.text}</p>` : ''}
+              ${item.href ? `<a href="${item.href}">Mehr erfahren</a>` : ''}
+            </div>`).join('')}</div></div></div>`;
+        }
+
+        case 'cta':
+          return `<div class="cms-block" data-block-id="${bid}" data-block-label="${blabel}" data-block-type="cta"><div class="cms-block-cta">
+            ${has(data.title) ? `<h2>${str(data.title)}</h2>` : ''}
+            ${has(data.text) ? `<p>${str(data.text)}</p>` : ''}
+            ${has(data.buttonHref) ? `<a href="${str(data.buttonHref)}" class="cms-cta-button ${str(data.variant) === 'secondary' ? 'cms-cta-secondary' : ''}">${str(data.buttonLabel) || 'Mehr'}</a>` : ''}
+          </div></div>`;
+
+        case 'faq': {
+          const items = data.items || [];
+          return `<div class="cms-block" data-block-id="${bid}" data-block-label="${blabel}" data-block-type="faq"><div class="cms-block-faq">
+            ${has(data.title) ? `<h2>${str(data.title)}</h2>` : ''}
+            ${items.map(item => `<details class="cms-faq-item">
+              <summary>${str(item.question)}</summary>
+              <div>${str(item.answer)}</div>
+            </details>`).join('')}</div></div>`;
+        }
+
+        case 'gallery': {
+          const images = data.images || [];
+          return `<div class="cms-block" data-block-id="${bid}" data-block-label="${blabel}" data-block-type="gallery"><div class="cms-block-gallery" data-layout="${str(data.layout) || 'grid'}">
+            ${has(data.title) ? `<h2>${str(data.title)}</h2>` : ''}
+            <div class="cms-gallery-grid">${images.map(img => `<figure>
+              <img src="${img.image?.url || ''}" alt="${str(img.alt)}" loading="lazy">
+              ${img.caption ? `<figcaption>${img.caption}</figcaption>` : ''}
+            </figure>`).join('')}</div></div></div>`;
+        }
+
+        case 'newsletter':
+          return `<div class="cms-block" data-block-id="${bid}" data-block-label="${blabel}" data-block-type="newsletter"><div class="cms-block-newsletter">
+            ${has(data.title) ? `<h2>${str(data.title)}</h2>` : ''}
+            ${has(data.subtitle) ? `<p>${str(data.subtitle)}</p>` : ''}
+            <form class="cms-newsletter-form" onsubmit="return false">
+              <input type="email" placeholder="E-Mail Adresse">
+              <button type="button">Anmelden</button>
+            </form></div></div>`;
+
+        case 'trustStrip': {
+          const items = data.items || [];
+          return `<div class="cms-block" data-block-id="${bid}" data-block-label="${blabel}" data-block-type="trustStrip"><div class="cms-block-trust-strip">
+            ${has(data.title) ? `<h2>${str(data.title)}</h2>` : ''}
+            <div class="cms-trust-grid">${items.map(item => `<div class="cms-trust-item">
+              <span class="cms-trust-icon">&#10003;</span>
+              <div>${item.label ? `<strong>${item.label}</strong>` : ''}${item.subtext ? `<span>${item.subtext}</span>` : ''}</div>
+            </div>`).join('')}</div></div></div>`;
+        }
+
+        case 'heroSlider': {
+          const slides = data.slides || [];
+          const first = slides[0];
+          return `<div class="cms-block" data-block-id="${bid}" data-block-label="${blabel}" data-block-type="heroSlider"><div class="cms-block-hero-slider">
+            ${first ? `<div class="cms-hero-slide">
+              ${first.image?.url ? `<img src="${first.image.url}" alt="${str(first.title)}" class="cms-hero-image">` :
+                `<div class="cms-placeholder cms-placeholder-wide">Hero Slider (${slides.length} Slides)</div>`}
+              <div class="cms-hero-content">
+                ${first.title ? `<h1>${first.title}</h1>` : ''}
+                ${first.subtitle ? `<p class="cms-hero-subline">${first.subtitle}</p>` : ''}
+              </div></div>` : '<div class="cms-placeholder cms-placeholder-wide">Hero Slider (keine Slides)</div>'}
+            ${slides.length > 1 ? `<div class="cms-slider-dots">${slides.map((_, i) => `<span class="cms-dot ${i === 0 ? 'cms-dot-active' : ''}"></span>`).join('')}</div>` : ''}
+          </div></div>`;
+        }
+
+        case 'featuredTrips':
+        case 'tripListing': {
+          const resolved = data.resolvedTrips || data.resolvedItems || [];
+          const max = data.maxItems || 6;
+          return `<div class="cms-block" data-block-id="${bid}" data-block-label="${blabel}" data-block-type="${blockType}"><div class="cms-block-trips">
+            ${has(data.title) ? `<h2>${str(data.title)}</h2>` : ''}
+            ${resolved.length > 0 ? `<div class="cms-trips-grid">${resolved.slice(0, max).map(t => `<div class="cms-trip-card">
+              ${t.image ? `<img src="${str(t.image)}" alt="${str(t.label || t.title)}" loading="lazy">` : '<div class="cms-placeholder">Kein Bild</div>'}
+              <div class="cms-trip-info"><h3>${str(t.label || t.title || 'Reise')}</h3>
+              ${t.price ? `<span class="cms-trip-price">ab ${t.price} &euro;</span>` : ''}</div>
+            </div>`).join('')}</div>` :
+            `<div class="cms-data-placeholder"><span>${blockType === 'featuredTrips' ? 'Ausgewaehlte Reisen' : 'Reiseliste'}</span>
+              <span class="cms-data-hint">${str(data.source) === 'auto' ? 'Automatisch' : 'Manuell'}${has(data.maxItems) ? ` (max. ${data.maxItems})` : ''}</span></div>`}
+          </div></div>`;
+        }
+
+        case 'featuredItems':
+        case 'collectionListing':
+        case 'collectionTiles': {
+          const resolved = data.resolvedItems || [];
+          return `<div class="cms-block" data-block-id="${bid}" data-block-label="${blabel}" data-block-type="${blockType}"><div class="cms-block-collection">
+            ${has(data.title) ? `<h2>${str(data.title)}</h2>` : ''}
+            ${resolved.length > 0 ? `<div class="${blockType === 'collectionTiles' ? 'cms-tiles-grid' : 'cms-cards-grid'}">${resolved.map(item => `<div class="cms-card">
+              ${item.image?.url ? `<img src="${item.image.url}" alt="${str(item.title)}" loading="lazy">` : ''}
+              ${item.title ? `<h3>${item.title}</h3>` : ''}
+            </div>`).join('')}</div>` :
+            `<div class="cms-data-placeholder"><span>${blockType === 'collectionTiles' ? 'Collection Tiles' : blockType === 'featuredItems' ? 'Ausgewaehlte Eintraege' : 'Collection Liste'}</span>
+              ${has(data.collectionKey) ? `<span class="cms-data-hint">Quelle: ${str(data.collectionKey)}</span>` : ''}</div>`}
+          </div></div>`;
+        }
+
+        case 'destinationTiles':
+        case 'inspirationTiles': {
+          const tiles = data.tiles || [];
+          return `<div class="cms-block" data-block-id="${bid}" data-block-label="${blabel}" data-block-type="${blockType}"><div class="cms-block-tiles">
+            ${has(data.title) ? `<h2>${str(data.title)}</h2>` : ''}
+            ${tiles.length > 0 ? `<div class="cms-tiles-grid">${tiles.map(tile => `<div class="cms-tile">
+              ${tile.image?.url ? `<img src="${tile.image.url}" alt="${str(tile.title)}" loading="lazy">` : '<div class="cms-placeholder">Bild</div>'}
+              ${tile.title ? `<span class="cms-tile-label">${tile.title}</span>` : ''}
+            </div>`).join('')}</div>` :
+            `<div class="cms-data-placeholder"><span>${blockType === 'destinationTiles' ? 'Reiseziel-Kacheln' : 'Inspirations-Kacheln'}</span></div>`}
+          </div></div>`;
+        }
+
+        case 'magazineTeaser': {
+          const posts = data.posts || [];
+          return `<div class="cms-block" data-block-id="${bid}" data-block-label="${blabel}" data-block-type="magazineTeaser"><div class="cms-block-magazine">
+            ${has(data.title) ? `<h2>${str(data.title)}</h2>` : ''}
+            ${posts.length > 0 ? `<div class="cms-cards-grid">${posts.map(p => `<div class="cms-card">
+              ${p.image?.url ? `<img src="${p.image.url}" alt="${str(p.title)}" loading="lazy">` : ''}
+              ${p.title ? `<h3>${p.title}</h3>` : ''}
+              ${p.excerpt ? `<p>${p.excerpt}</p>` : ''}
+            </div>`).join('')}</div>` :
+            `<div class="cms-data-placeholder"><span>Magazin-Teaser</span><span class="cms-data-hint">Blog-Beitraege werden automatisch geladen</span></div>`}
+          </div></div>`;
+        }
+
+        default:
+          return `<div class="cms-block" data-block-id="${bid}" data-block-label="${blabel}" data-block-type="${blockType}"><div class="cms-block-unknown">
+            <strong>${blockType}</strong><span>(Vorschau nicht verfügbar)</span></div></div>`;
+      }
+    }
+
+    function renderSections(sections) {
+      if (!sections || sections.length === 0) {
+        root.innerHTML = '<div class="preview-empty"><div><p>Keine Inhalte vorhanden</p><p class="sub">Füge im Editor Inhalte hinzu</p></div></div>';
+        return;
+      }
+      root.innerHTML = sections.map(section => {
+        const bg = section.background || {};
+        const spacing = section.spacing || {};
+        const bgColor = bg.color || 'transparent';
+        const pt = spacing.paddingTop || '48px';
+        const pb = spacing.paddingBottom || '48px';
+        return `<section class="cms-section" style="background-color:${bgColor};padding-top:${pt};padding-bottom:${pb}" data-section-id="${section.id}">
+          <div class="cms-section-inner"><div class="cms-columns" data-layout="${section.layout || 'full'}">
+            ${(section.columns || []).map(col =>
+              `<div class="cms-column">${(col.blocks || []).map(renderBlock).join('')}</div>`
+            ).join('')}
+          </div></div></section>`;
+      }).join('');
+    }
+
+    // Listen for PostMessage updates from the editor
+    window.addEventListener('message', function(e) {
+      if (typeof e.data !== 'object' || e.data === null) return;
+      if (e.data.type === 'cms-preview-update') {
+        renderSections(e.data.payload.sections);
+      }
+      // Editor → Preview: scroll to block with flash animation
+      if (e.data.type === 'cms-scroll-to-block') {
+        const el = document.querySelector('[data-block-id="' + e.data.blockId + '"]');
+        if (el) {
+          document.querySelectorAll('.cms-block-selected, .cms-block-flash').forEach(b => {
+            b.classList.remove('cms-block-selected', 'cms-block-flash');
+          });
+          el.classList.add('cms-block-selected', 'cms-block-flash');
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.addEventListener('animationend', function handler() {
+            el.classList.remove('cms-block-flash');
+            el.removeEventListener('animationend', handler);
+          });
+        }
+      }
+    });
+
+    // Preview → Editor: click on block sends message to parent
+    document.addEventListener('click', function(e) {
+      const block = e.target.closest('[data-block-id]');
+      if (block && window.parent !== window) {
+        const blockId = block.getAttribute('data-block-id');
+        const sectionEl = block.closest('[data-section-id]');
+        const sectionId = sectionEl ? sectionEl.getAttribute('data-section-id') : '';
+        window.parent.postMessage({
+          type: 'cms-preview-block-click',
+          blockId: blockId,
+          sectionId: sectionId,
+        }, '*');
+        // Highlight clicked block
+        document.querySelectorAll('.cms-block-selected').forEach(b => b.classList.remove('cms-block-selected'));
+        block.classList.add('cms-block-selected');
+      }
+    });
+
+    // Clean-Modus (Vollbild/Standalone): Sections per API laden
+    if (isCleanMode) {
+      const params = new URLSearchParams(window.location.search);
+      const pageId = params.get('pageId');
+      const token = params.get('token');
+      if (pageId && token) {
+        root.innerHTML = '<div class="preview-empty"><div><p>Vorschau wird geladen...</p></div></div>';
+        fetch('/api/pages/' + pageId, { headers: { 'Authorization': 'Bearer ' + token } })
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(page => {
+            document.title = (page.title || 'Vorschau') + ' – Vorschau';
+            renderSections(page.sections || []);
+          })
+          .catch(() => {
+            root.innerHTML = '<div class="preview-empty"><div><p>Seite konnte nicht geladen werden</p><p class="sub">Bitte erneut aus dem Editor öffnen</p></div></div>';
+          });
+      } else {
+        renderSections([]);
+      }
+    } else {
+      // Editor-Modus: per postMessage vom Editor aktualisiert
+      window.parent.postMessage({ type: 'cms-preview-ready' }, '*');
+      renderSections([]);
+    }
+  </script>
+</body>
+</html>

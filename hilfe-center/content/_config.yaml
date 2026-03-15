@@ -1,0 +1,53 @@
+# Contypio - Hilfe-Center Navigation
+
+sections:
+  - title: "Contypio verstehen"
+    icon: "info-circle"
+    topics:
+      - was-ist-contypio
+      - erste-schritte
+      - api-uebersicht
+      - editionen-und-limits
+      - fuer-entwickler
+
+  - title: "Architektur & Grundlagen"
+    icon: "diagram-3"
+    topics:
+      - ueberblick
+      - delivery-api
+      - datenmodell
+
+  - title: "Astro-Anbindung"
+    icon: "plug"
+    topics:
+      - astro-anbindung
+      - astro-globals
+      - astro-collections
+      - astro-content-adapter
+
+  - title: "CMS bedienen"
+    icon: "pencil-square"
+    topics:
+      - seiten-erstellen
+      - globals-verwalten
+      - collections-verwalten
+      - section-editor
+      - media-library
+
+  - title: "Import & Export"
+    icon: "arrow-left-right"
+    topics:
+      - import-export
+      - globals-to-sections
+
+  - title: "Integrationen"
+    icon: "broadcast"
+    topics:
+      - webhooks
+      - webhook-receiver-einrichten
+
+  - title: "Deployment"
+    icon: "cloud-upload"
+    topics:
+      - deployment
+      - env-variablen

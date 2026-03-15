@@ -1,0 +1,53 @@
+services:
+  cms-api:
+    build: ./backend
+    container_name: cms-api
+    ports:
+      - "8060:8060"
+    env_file: ./backend/.env
+    volumes:
+      - ./backend/app:/app/app
+      - cms-uploads:/app/uploads
+    depends_on:
+      cms-postgres:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - cms-network
+
+  cms-postgres:
+    image: postgres:17-alpine
+    container_name: cms-postgres
+    ports:
+      - "7460:5432"
+    environment:
+      POSTGRES_DB: cms_db
+      POSTGRES_USER: cms_user
+      POSTGRES_PASSWORD: cms_pass
+    volumes:
+      - cms-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cms_user -d cms_db"]
+      interval: 5s
+      retries: 5
+    networks:
+      - cms-network
+
+  cms-admin:
+    build: ./frontend
+    container_name: cms-admin
+    ports:
+      - "8061:80"
+    depends_on:
+      - cms-api
+    networks:
+      - cms-network
+
+volumes:
+  cms-pgdata:
+  cms-uploads:
+
+networks:
+  cms-network:
+    name: cms-network

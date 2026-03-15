@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 220" role="img" aria-label="contypio logo light">
+  <defs>
+    <linearGradient id="contypioGradientLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#49D6C8"/>
+      <stop offset="100%" stop-color="#2A6FB0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- icon -->
+  <g transform="translate(24,20)">
+    <rect x="0" y="0" width="150" height="150" rx="24" fill="url(#contypioGradientLight)"/>
+    <polygon points="58,150 152,150 152,56" fill="#77E3D7"/>
+    <polygon points="44,150 66,150 152,64 152,42" fill="#FFFFFF"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="220" y="128"
+        font-family="Inter, Satoshi, Arial, sans-serif"
+        font-size="112"
+        font-weight="700"
+        letter-spacing="-2"
+        fill="#0F172A">contypio</text>
+</svg>

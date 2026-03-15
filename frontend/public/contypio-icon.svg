@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-label="contypio icon">
+  <defs>
+    <linearGradient id="contypioIconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#49D6C8"/>
+      <stop offset="100%" stop-color="#2A6FB0"/>
+    </linearGradient>
+  </defs>
+  <rect x="14" y="14" width="152" height="152" rx="26" fill="url(#contypioIconGradient)"/>
+  <polygon points="68,166 166,166 166,62" fill="#77E3D7"/>
+  <polygon points="52,166 74,166 166,70 166,48" fill="#FFFFFF"/>
+</svg>

@@ -1,6 +1,31 @@
+# Dependencies
 node_modules/
+venv/
+
+# Build output
 dist/
-.env
-.env.local
 .astro/
 *.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads (runtime data)
+uploads/
