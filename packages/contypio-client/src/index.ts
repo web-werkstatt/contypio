@@ -9,6 +9,7 @@ export { ContypioClient, createClient } from "./client.js";
 export { PagesResource } from "./resources/pages.js";
 export { CollectionsResource } from "./resources/collections.js";
 export { GlobalsResource } from "./resources/globals.js";
+export { LocalesResource } from "./resources/locales.js";
 
 // Errors
 export { ContypioError, ContypioNetworkError } from "./errors.js";
@@ -46,6 +47,12 @@ export type {
   ListCollectionParams,
   // Globals
   Global,
+  GetGlobalParams,
+  // i18n
+  LocaleMetadata,
+  LocaleInfo,
+  LocalesResponse,
+  PageLocalesResponse,
   // Errors
   ProblemDetail,
   ValidationError,

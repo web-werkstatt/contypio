@@ -9,6 +9,11 @@ import { request } from "../fetch.js";
 export class CollectionsResource {
   constructor(private readonly config: ContypioConfig) {}
 
+  /** Resolve effective locale: param > config default. */
+  private _locale(paramLocale?: string): string | undefined {
+    return paramLocale ?? this.config.locale;
+  }
+
   /**
    * List items from a collection by key (paginated).
    * Supports both offset and cursor-based pagination.
@@ -18,11 +23,12 @@ export class CollectionsResource {
    * // Simple listing
    * const blog = await client.collections.list("blog-posts");
    *
-   * // With sorting and filters
+   * // With sorting, filters, and locale
    * const tours = await client.collections.list("tours", {
    *   sort: "-created_at",
    *   limit: 10,
    *   filter: { price: { gte: "100" }, status: { eq: "active" } },
+   *   locale: "de",
    * });
    *
    * // Cursor-based pagination
@@ -45,6 +51,8 @@ export class CollectionsResource {
     if (params?.search) query["search"] = params.search;
     if (params?.filter) query["filter"] = params.filter;
     if (params?.cursor) query["cursor"] = params.cursor;
+    const locale = this._locale(params?.locale);
+    if (locale) query["locale"] = locale;
 
     return request<PaginatedResult<CollectionItem>>(
       this.config,

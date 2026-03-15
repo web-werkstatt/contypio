@@ -33,8 +33,10 @@ class CmsTenant(Base):
     max_media_mb: Mapped[int] = mapped_column(Integer, default=500)
     max_users: Mapped[int] = mapped_column(Integer, default=5)
 
-    # Default language for this tenant (G1 i18n)
+    # i18n (G1)
     default_language: Mapped[str] = mapped_column(String(5), default="en")
+    locales: Mapped[list] = mapped_column(JSON, default=list)  # ["en", "de", "de-AT"]
+    fallback_chain: Mapped[dict] = mapped_column(JSON, default=dict)  # {"de-AT": ["de", "en"]}
 
     # Billing / Stripe (L11.7 Phase 2)
     billing_enabled: Mapped[bool] = mapped_column(Boolean, default=False)

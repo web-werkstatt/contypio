@@ -8,12 +8,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.api_key import CmsApiKey, hash_api_key
 from app.core.config import settings
+from app.core.content_i18n import (
+    build_locale_metadata,
+    get_translatable_data_fields,
+    merge_collection_data_translation,
+    resolve_locale,
+)
 from app.core.database import get_db
 from app.delivery.cache_headers import cached_json_response
-from app.delivery.query_params import CursorParams, FilterParams, PaginationParams, SortParams, decode_cursor, encode_cursor, paginated_response
-from app.delivery.tenant_resolver import get_delivery_tenant_id
+from app.delivery.query_params import CursorParams, FilterParams, LocaleParams, PaginationParams, SortParams, decode_cursor, encode_cursor, paginated_response
+from app.delivery.tenant_resolver import get_delivery_tenant, get_delivery_tenant_id
 from app.models.collection import CmsCollection, CmsCollectionSchema
 from app.models.media import CmsMedia
+from app.models.tenant import CmsTenant
 from app.validators.filter_validator import FilterValidator
 
 logger = logging.getLogger("cms.delivery")
@@ -230,8 +237,10 @@ async def get_collection(
     sorting: SortParams = Depends(),
     cursor_params: CursorParams = Depends(),
     search: str | None = Query(default=None, description="Search in title and data"),
+    locale_params: LocaleParams = Depends(),
     tenant_id: UUID = Depends(get_delivery_tenant_id),
     db: AsyncSession = Depends(get_db),
+    tenant: CmsTenant | None = None,
 ):
     # API-Key auth: override tenant_id and check scopes
     api_key_auth = await _resolve_api_key_auth(request, db)
@@ -318,18 +327,54 @@ async def get_collection(
     items = list(result.scalars().all())
     schema_fields = schema.fields or []
 
+    # i18n: resolve locale if requested
+    locale_param = getattr(locale_params, "locale", None) if locale_params else None
+    use_i18n = bool(locale_param and tenant)
+    resolved_locale = ""
+    chain: list[str] = []
+    translatable_data_fields: set[str] = set()
+    if use_i18n and tenant:
+        resolved_locale, chain = resolve_locale(
+            locale_param, tenant.locales or [], tenant.default_language, tenant.fallback_chain or {},
+        )
+        translatable_data_fields = get_translatable_data_fields(schema_fields)
+
     resolved_items = []
     for i in items:
         data = await _resolve_media_ids(i.data or {}, schema_fields, tenant_id, db)
         data = await _resolve_relation_ids(data, schema_fields, tenant_id, db)
-        resolved_items.append({
+        item_dict: dict = {
             "id": i.id,
             "title": i.title,
             "slug": i.slug,
             "data": data,
             "sort_order": i.sort_order,
             "image_id": i.image_id,
-        })
+        }
+        if use_i18n and (i.translations or {}):
+            # Merge title from translations
+            title_trans = (i.translations or {}).get(resolved_locale, {}).get("title")
+            fallbacks_used: dict[str, str] = {}
+            if title_trans:
+                item_dict["title"] = title_trans
+            else:
+                # Walk fallback chain for title
+                for fl in chain:
+                    t = (i.translations or {}).get(fl, {}).get("title")
+                    if t:
+                        item_dict["title"] = t
+                        if fl != resolved_locale:
+                            fallbacks_used["title"] = fl
+                        break
+            # Merge translatable data fields
+            if translatable_data_fields:
+                merged_data, data_fallbacks = merge_collection_data_translation(
+                    data, i.translations or {}, translatable_data_fields, resolved_locale, chain,
+                )
+                item_dict["data"] = merged_data
+                fallbacks_used.update(data_fallbacks)
+            item_dict["_locale"] = build_locale_metadata(locale_param, resolved_locale, fallbacks_used)
+        resolved_items.append(item_dict)
 
     # Build cursor tokens for next/prev navigation
     next_cursor = None
@@ -359,8 +404,12 @@ async def get_collection_plural(
     sorting: SortParams = Depends(),
     cursor_params: CursorParams = Depends(),
     search: str | None = Query(default=None, description="Search in title and data"),
-    tenant_id: UUID = Depends(get_delivery_tenant_id),
+    locale_params: LocaleParams = Depends(),
+    tenant: CmsTenant = Depends(get_delivery_tenant),
     db: AsyncSession = Depends(get_db),
 ):
     """Plural URL alias: /content/collections/{key} -> delegates to get_collection."""
-    return await get_collection(key, request, pagination, sorting, cursor_params, search, tenant_id, db)
+    return await get_collection(
+        key, request, pagination, sorting, cursor_params, search,
+        locale_params=locale_params, tenant_id=tenant.id, db=db, tenant=tenant,
+    )

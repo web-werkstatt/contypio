@@ -1,6 +1,6 @@
 {
   "name": "@contypio/client",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Official TypeScript client for the Contypio Headless CMS Delivery API",
   "type": "module",
   "main": "./dist/index.js",

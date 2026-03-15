@@ -46,6 +46,7 @@ class CmsCollection(Base, TenantMixin):
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), onupdate=lambda: datetime.now(timezone.utc)
     )
+    translations: Mapped[dict] = mapped_column(JSON, default=dict)
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, default=None
     )

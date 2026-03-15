@@ -2,6 +2,7 @@ import type { ContypioConfig } from "./types.js";
 import { PagesResource } from "./resources/pages.js";
 import { CollectionsResource } from "./resources/collections.js";
 import { GlobalsResource } from "./resources/globals.js";
+import { LocalesResource } from "./resources/locales.js";
 
 /**
  * Contypio Delivery API client.
@@ -17,12 +18,20 @@ import { GlobalsResource } from "./resources/globals.js";
  * const page = await client.pages.get("homepage");
  * const blog = await client.collections.list("blog-posts", { sort: "-created_at" });
  * const globals = await client.globals.all();
+ *
+ * // With default locale
+ * const deClient = createClient({
+ *   baseUrl: "https://cms.example.com",
+ *   locale: "de",
+ * });
+ * const dePage = await deClient.pages.get("homepage"); // locale=de by default
  * ```
  */
 export class ContypioClient {
   readonly pages: PagesResource;
   readonly collections: CollectionsResource;
   readonly globals: GlobalsResource;
+  readonly locales: LocalesResource;
 
   constructor(config: ContypioConfig) {
     if (!config.baseUrl) {
@@ -32,6 +41,7 @@ export class ContypioClient {
     this.pages = new PagesResource(config);
     this.collections = new CollectionsResource(config);
     this.globals = new GlobalsResource(config);
+    this.locales = new LocalesResource(config);
   }
 }
 
@@ -49,10 +59,11 @@ export class ContypioClient {
  *   apiKey: "cms_abc123…",
  * });
  *
- * // Multi-tenant
+ * // Multi-tenant with locale
  * const client = createClient({
  *   baseUrl: "https://cms.example.com",
  *   tenant: "my-site",
+ *   locale: "de",
  * });
  *
  * // Custom fetch (e.g. Cloudflare Workers, testing)

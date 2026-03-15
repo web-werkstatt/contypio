@@ -5,11 +5,19 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.content_i18n import (
+    GLOBAL_TRANSLATABLE_FIELDS,
+    build_locale_metadata,
+    merge_translation,
+    resolve_locale,
+)
 from app.core.database import get_db
 from app.delivery.cache_headers import cached_json_response
-from app.delivery.tenant_resolver import get_delivery_tenant_id
+from app.delivery.query_params import LocaleParams
+from app.delivery.tenant_resolver import get_delivery_tenant
 from app.models.global_config import CmsGlobal
 from app.models.media import CmsMedia
+from app.models.tenant import CmsTenant
 
 router = APIRouter(prefix="/content/globals", tags=["Content Delivery API"])
 
@@ -80,13 +88,40 @@ def _replace_media_ids_recursive(obj: dict | list, media_map: dict[int, dict]) -
     return obj
 
 
+def _apply_global_locale(
+    response: dict,
+    item: CmsGlobal,
+    locale_param: str | None,
+    tenant: CmsTenant,
+) -> dict:
+    """Apply i18n translation merging to a global response dict."""
+    if not locale_param:
+        return response
+
+    resolved, chain = resolve_locale(
+        locale_param, tenant.locales or [], tenant.default_language, tenant.fallback_chain or {},
+    )
+    translations = item.translations or {}
+    if not translations:
+        response["_locale"] = build_locale_metadata(locale_param, resolved, {})
+        return response
+
+    merged, fallbacks_used = merge_translation(
+        response, translations, GLOBAL_TRANSLATABLE_FIELDS, resolved, chain,
+    )
+    merged["_locale"] = build_locale_metadata(locale_param, resolved, fallbacks_used)
+    return merged
+
+
 @router.get("/", response_model=None, summary="List all globals", description="Fetch all globals in one batch request. Optimized for static site builds.")
 async def list_globals(
     request: Request,
-    tenant_id: UUID = Depends(get_delivery_tenant_id),
+    locale_params: LocaleParams = Depends(),
+    tenant: CmsTenant = Depends(get_delivery_tenant),
     db: AsyncSession = Depends(get_db),
 ):
     """Fetch all globals in one request (batch endpoint for build performance)."""
+    tenant_id = tenant.id
     result = await db.execute(
         select(CmsGlobal).where(CmsGlobal.tenant_id == tenant_id)
     )
@@ -95,11 +130,13 @@ async def list_globals(
     items = []
     for item in globals_list:
         data = await _resolve_media_in_data(item.data or {}, tenant_id, db)
-        items.append({
+        resp = {
             "slug": item.slug,
             "label": item.label,
             "data": data,
-        })
+        }
+        resp = _apply_global_locale(resp, item, locale_params.locale, tenant)
+        items.append(resp)
 
     return cached_json_response(items, request, "globals")
 
@@ -108,10 +145,11 @@ async def list_globals(
 async def get_global(
     slug: str,
     request: Request,
-    tenant_id: UUID = Depends(get_delivery_tenant_id),
+    locale_params: LocaleParams = Depends(),
+    tenant: CmsTenant = Depends(get_delivery_tenant),
     db: AsyncSession = Depends(get_db),
 ):
-
+    tenant_id = tenant.id
     result = await db.execute(
         select(CmsGlobal).where(
             CmsGlobal.tenant_id == tenant_id,
@@ -128,5 +166,6 @@ async def get_global(
         "label": item.label,
         "data": data,
     }
+    response_data = _apply_global_locale(response_data, item, locale_params.locale, tenant)
 
     return cached_json_response(response_data, request, "globals", updated_at=item.updated_at)

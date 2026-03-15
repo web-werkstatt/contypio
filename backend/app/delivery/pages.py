@@ -5,12 +5,19 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.content_i18n import (
+    PAGE_TRANSLATABLE_FIELDS,
+    build_locale_metadata,
+    merge_translation,
+    resolve_locale,
+)
 from app.core.database import get_db
 from app.delivery.cache_headers import cached_json_response
-from app.delivery.query_params import PaginationParams, SparseFieldsParams, paginated_response
+from app.delivery.query_params import LocaleParams, PaginationParams, SparseFieldsParams, paginated_response
 from app.delivery.resolve import build_media_cache, collect_image_ids, resolve_dynamic_blocks, resolve_grid_layouts, resolve_sections
-from app.delivery.tenant_resolver import get_delivery_tenant_id
+from app.delivery.tenant_resolver import get_delivery_tenant
 from app.models.page import CmsPage
+from app.models.tenant import CmsTenant
 
 router = APIRouter(prefix="/content", tags=["Content Delivery API"])
 
@@ -28,16 +35,43 @@ def _apply_sparse_fields(page_dict: dict, field_set: set[str] | None) -> dict:
     return {k: v for k, v in page_dict.items() if k in allowed}
 
 
+def _apply_locale(
+    response: dict,
+    page: CmsPage,
+    locale_param: str | None,
+    tenant: CmsTenant,
+) -> dict:
+    """Apply i18n translation merging to a page response dict."""
+    if not locale_param:
+        return response
+
+    resolved, chain = resolve_locale(
+        locale_param, tenant.locales or [], tenant.default_language, tenant.fallback_chain or {},
+    )
+    translations = page.translations or {}
+    if not translations:
+        response["_locale"] = build_locale_metadata(locale_param, resolved, {})
+        return response
+
+    merged, fallbacks_used = merge_translation(
+        response, translations, PAGE_TRANSLATABLE_FIELDS, resolved, chain,
+    )
+    merged["_locale"] = build_locale_metadata(locale_param, resolved, fallbacks_used)
+    return merged
+
+
 async def _fetch_single_page(
     slug: str,
     request: Request,
     include_css: bool,
     sparse: SparseFieldsParams,
-    tenant_id: UUID,
+    tenant: CmsTenant,
     db: AsyncSession,
+    locale_param: str | None = None,
     path: str | None = None,
 ):
     """Shared logic for fetching a single published page by slug or path."""
+    tenant_id = tenant.id
     query = select(CmsPage).where(
         CmsPage.tenant_id == tenant_id,
         CmsPage.status == "published",
@@ -81,13 +115,14 @@ async def _fetch_single_page(
     if needs_sections and page.collection_key:
         try:
             from app.delivery.collections import get_collection
-            collection_resp = await get_collection(page.collection_key, request, tenant_id=tenant_id, db=db)
+            collection_resp = await get_collection(page.collection_key, request, tenant_id=tenant_id, db=db, tenant=tenant)
             import json
             response["collection"] = json.loads(collection_resp.body.decode())
         except Exception:
             response["collection"] = {"items": [], "total": 0}
 
     response = _apply_sparse_fields(response, field_set)
+    response = _apply_locale(response, page, locale_param, tenant)
     return cached_json_response(response, request, "page", updated_at=page.updated_at)
 
 
@@ -97,10 +132,11 @@ async def get_page_by_slug(
     request: Request,
     include_css: bool = False,
     sparse: SparseFieldsParams = Depends(),
-    tenant_id: UUID = Depends(get_delivery_tenant_id),
+    locale_params: LocaleParams = Depends(),
+    tenant: CmsTenant = Depends(get_delivery_tenant),
     db: AsyncSession = Depends(get_db),
 ):
-    return await _fetch_single_page(slug, request, include_css, sparse, tenant_id, db)
+    return await _fetch_single_page(slug, request, include_css, sparse, tenant, db, locale_param=locale_params.locale)
 
 
 @router.get("/page", summary="Get page by query param (deprecated)", description="Deprecated: Use /content/pages/{slug} instead. Kept for backwards compatibility.", deprecated=True)
@@ -110,12 +146,13 @@ async def get_page(
     slug: str | None = None,
     include_css: bool = False,
     sparse: SparseFieldsParams = Depends(),
-    tenant_id: UUID = Depends(get_delivery_tenant_id),
+    locale_params: LocaleParams = Depends(),
+    tenant: CmsTenant = Depends(get_delivery_tenant),
     db: AsyncSession = Depends(get_db),
 ):
     if not path and not slug:
         raise HTTPException(status_code=400, detail="path or slug required")
-    return await _fetch_single_page(slug or "", request, include_css, sparse, tenant_id, db, path=path)
+    return await _fetch_single_page(slug or "", request, include_css, sparse, tenant, db, locale_param=locale_params.locale, path=path)
 
 
 @router.get("/pages", summary="List published pages", description="List all published pages with optional filtering by page_type or parent. No section resolution for performance.")
@@ -125,10 +162,12 @@ async def list_pages(
     parent_id: int | None = None,
     pagination: PaginationParams = Depends(),
     sparse: SparseFieldsParams = Depends(),
-    tenant_id: UUID = Depends(get_delivery_tenant_id),
+    locale_params: LocaleParams = Depends(),
+    tenant: CmsTenant = Depends(get_delivery_tenant),
     db: AsyncSession = Depends(get_db),
 ):
     """List published pages with optional filters. No section resolution for performance."""
+    tenant_id = tenant.id
     base_filter = [
         CmsPage.tenant_id == tenant_id,
         CmsPage.status == "published",
@@ -168,6 +207,7 @@ async def list_pages(
             "published_at": p.published_at.isoformat() if p.published_at else None,
         }
         item = _apply_sparse_fields(item, field_set)
+        item = _apply_locale(item, p, locale_params.locale, tenant)
         items.append(item)
 
     response_data = paginated_response(items, total, pagination.limit, pagination.offset)
@@ -177,9 +217,11 @@ async def list_pages(
 @router.get("/tree", summary="Page tree", description="Hierarchical page tree with parent-child relationships. Useful for navigation menus.")
 async def get_tree(
     request: Request,
-    tenant_id: UUID = Depends(get_delivery_tenant_id),
+    locale_params: LocaleParams = Depends(),
+    tenant: CmsTenant = Depends(get_delivery_tenant),
     db: AsyncSession = Depends(get_db),
 ):
+    tenant_id = tenant.id
     result = await db.execute(
         select(CmsPage).where(
             CmsPage.tenant_id == tenant_id,
@@ -188,14 +230,32 @@ async def get_tree(
     )
     pages = list(result.scalars().all())
 
+    # Resolve locale once for all pages
+    locale_param = locale_params.locale
+    use_i18n = bool(locale_param)
+    resolved_locale = ""
+    chain: list[str] = []
+    if use_i18n:
+        resolved_locale, chain = resolve_locale(
+            locale_param, tenant.locales or [], tenant.default_language, tenant.fallback_chain or {},
+        )
+
     page_map: dict[int, dict] = {}
     roots: list[dict] = []
 
     for p in pages:
-        node = {
+        node: dict = {
             "id": p.id, "title": p.title, "slug": p.slug, "path": p.path,
             "page_type": p.page_type, "children": [],
         }
+        # Apply locale to title
+        if use_i18n and (p.translations or {}):
+            merged, fallbacks = merge_translation(
+                node, p.translations or {}, {"title"}, resolved_locale, chain,
+            )
+            node["title"] = merged["title"]
+            if locale_param:
+                node["_locale"] = build_locale_metadata(locale_param, resolved_locale, fallbacks)
         page_map[p.id] = node
 
     for p in pages:
@@ -216,15 +276,17 @@ class BatchPagesRequest(BaseModel):
     slugs: list[str] = Field(..., min_length=1, max_length=50, description="Page slugs to fetch (max 50)")
     fields: str | None = Field(default=None, description="Comma-separated sparse fields")
     include_css: bool = Field(default=False, description="Include CSS for grid layouts")
+    locale: str | None = Field(default=None, description="BCP 47 locale (e.g. de, en, de-AT)")
 
 
 @router.post("/pages/batch", summary="Batch fetch pages", description="Fetch multiple pages by slug in a single request. Max 50 slugs. Returns a map of slug→page (null if not found).")
 async def batch_pages(
     body: BatchPagesRequest,
     request: Request,
-    tenant_id: UUID = Depends(get_delivery_tenant_id),
+    tenant: CmsTenant = Depends(get_delivery_tenant),
     db: AsyncSession = Depends(get_db),
 ):
+    tenant_id = tenant.id
     # Parse sparse fields
     field_set: set[str] | None = None
     if body.fields:
@@ -274,7 +336,9 @@ async def batch_pages(
             "sections": resolved,
             "published_at": page.published_at.isoformat() if page.published_at else None,
         }
-        items[slug] = _apply_sparse_fields(page_dict, field_set)
+        page_dict = _apply_sparse_fields(page_dict, field_set)
+        page_dict = _apply_locale(page_dict, page, body.locale, tenant)
+        items[slug] = page_dict
 
     resolved_count = len(body.slugs) - len(not_found)
     response_data = {

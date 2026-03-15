@@ -17,6 +17,7 @@ class CmsGlobal(Base, TenantMixin):
     slug: Mapped[str] = mapped_column(String(100), nullable=False)
     label: Mapped[str] = mapped_column(String(255), nullable=False)
     data: Mapped[dict] = mapped_column(JSON, default=dict)
+    translations: Mapped[dict] = mapped_column(JSON, default=dict)
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), onupdate=lambda: datetime.now(timezone.utc)
     )

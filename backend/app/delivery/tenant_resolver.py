@@ -1,4 +1,4 @@
-"""Resolve tenant_id for public delivery endpoints.
+"""Resolve tenant for public delivery endpoints.
 
 Resolution order:
 1. `X-Tenant` header (slug or domain)
@@ -60,11 +60,11 @@ def _extract_host(request: Request) -> str:
     return host.split(":")[0].lower().strip()
 
 
-async def get_delivery_tenant_id(
+async def get_delivery_tenant(
     request: Request,
     db: AsyncSession = Depends(get_db),
-) -> UUID:
-    """Resolve tenant_id for delivery endpoints.
+) -> CmsTenant:
+    """Resolve full tenant object for delivery endpoints.
 
     Priority:
     1. X-Tenant header (slug or domain)
@@ -80,17 +80,26 @@ async def get_delivery_tenant_id(
         if not tenant:
             tenant = await _find_tenant_by_domain(x_tenant, db)
         if tenant:
-            return tenant.id
+            return tenant
 
     # 2. Host header -> match against CmsTenant.domain
     host = _extract_host(request)
     if host and host not in ("localhost", "127.0.0.1", ""):
         tenant = await _find_tenant_by_domain(host, db)
         if tenant:
-            return tenant.id
+            return tenant
 
     # 3. Fallback to default tenant
     tenant = await _find_tenant_by_slug(settings.DEFAULT_TENANT_SLUG, db)
     if not tenant:
         raise HTTPException(status_code=500, detail="Default tenant not found")
+    return tenant
+
+
+async def get_delivery_tenant_id(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> UUID:
+    """Resolve tenant_id for delivery endpoints. Backwards-compatible wrapper."""
+    tenant = await get_delivery_tenant(request, db)
     return tenant.id

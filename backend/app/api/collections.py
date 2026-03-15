@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pydantic import BaseModel
+
 from app.auth.dependencies import get_current_user
 from app.auth.models import CmsUser
 from app.core.database import get_db
@@ -15,6 +17,7 @@ from app.services import collection_service
 from app.services import collection_import_service
 from app.services import collection_export_service
 from app.services import schema_export_service
+from app.services.translation_service import get_translations, update_translation, delete_translation
 from app.services.webhook_service import dispatch_event
 
 router = APIRouter(prefix="/api/collections", tags=["collections"])
@@ -432,3 +435,60 @@ async def delete_item(
     if not deleted:
         raise HTTPException(status_code=404, detail="Item not found")
     await dispatch_event("collection.item_deleted", {"id": item_id, "collection": key}, user.tenant_id, db)
+
+
+# ---------------------------------------------------------------------------
+# Translation CRUD (i18n)
+# ---------------------------------------------------------------------------
+
+class CollectionTranslationUpdate(BaseModel):
+    title: str | None = None
+    data: dict | None = None
+
+
+@router.get("/{key}/items/{item_id}/translations")
+async def get_item_translations(
+    key: str,
+    item_id: int,
+    user: CmsUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    item = await collection_service.get_item(item_id, key, user.tenant_id, db)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return get_translations(item)
+
+
+@router.put("/{key}/items/{item_id}/translations/{locale}")
+async def update_item_translation(
+    key: str,
+    item_id: int,
+    locale: str,
+    body: CollectionTranslationUpdate,
+    user: CmsUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    item = await collection_service.get_item(item_id, key, user.tenant_id, db)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    data = body.model_dump(exclude_none=True)
+    if not data:
+        raise HTTPException(status_code=400, detail="No translation data provided")
+    translations = await update_translation(item, locale, data, db)
+    return {"locale": locale, "translations": translations}
+
+
+@router.delete("/{key}/items/{item_id}/translations/{locale}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_item_translation(
+    key: str,
+    item_id: int,
+    locale: str,
+    user: CmsUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    item = await collection_service.get_item(item_id, key, user.tenant_id, db)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    removed = await delete_translation(item, locale, db)
+    if not removed:
+        raise HTTPException(status_code=404, detail=f"No translation for locale '{locale}'")

@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pydantic import BaseModel
+
 from app.auth.dependencies import get_current_user
 from app.auth.models import CmsUser
 from app.core.database import get_db
 from app.schemas.page import PageCreate, PageRead, PageTreeItem, PageUpdate
 from app.services import page_service
+from app.services.translation_service import get_translations, update_translation, delete_translation
 from app.services.usage_service import check_limit
 from app.services.webhook_service import dispatch_event
 
@@ -142,3 +145,59 @@ async def delete_page(
     if not deleted:
         raise HTTPException(status_code=404, detail="Page not found")
     await dispatch_event("page.deleted", page_info, user.tenant_id, db)
+
+
+# ---------------------------------------------------------------------------
+# Translation CRUD (i18n)
+# ---------------------------------------------------------------------------
+
+class PageTranslationUpdate(BaseModel):
+    title: str | None = None
+    seo: dict | None = None
+    hero: dict | None = None
+    sections: list | None = None
+
+
+@router.get("/{page_id}/translations")
+async def get_page_translations(
+    page_id: int,
+    user: CmsUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    page = await page_service.get_page(page_id, user.tenant_id, db)
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
+    return get_translations(page)
+
+
+@router.put("/{page_id}/translations/{locale}")
+async def update_page_translation(
+    page_id: int,
+    locale: str,
+    body: PageTranslationUpdate,
+    user: CmsUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    page = await page_service.get_page(page_id, user.tenant_id, db)
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
+    data = body.model_dump(exclude_none=True)
+    if not data:
+        raise HTTPException(status_code=400, detail="No translation data provided")
+    translations = await update_translation(page, locale, data, db)
+    return {"locale": locale, "translations": translations}
+
+
+@router.delete("/{page_id}/translations/{locale}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_page_translation(
+    page_id: int,
+    locale: str,
+    user: CmsUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    page = await page_service.get_page(page_id, user.tenant_id, db)
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
+    removed = await delete_translation(page, locale, db)
+    if not removed:
+        raise HTTPException(status_code=404, detail=f"No translation for locale '{locale}'")

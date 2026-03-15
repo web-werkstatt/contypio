@@ -25,6 +25,12 @@ export interface ContypioConfig {
   tenant?: string;
 
   /**
+   * Default locale for all requests. Can be overridden per-method.
+   * BCP 47 format (e.g. "de", "en", "de-AT").
+   */
+  locale?: string;
+
+  /**
    * Custom `fetch` implementation.
    * Defaults to the global `fetch`. Useful for testing or edge runtimes.
    */
@@ -67,6 +73,8 @@ export interface BatchPagesRequest {
   fields?: string;
   /** Include CSS for grid layouts. */
   include_css?: boolean;
+  /** BCP 47 locale. */
+  locale?: string;
 }
 
 export interface BatchPagesResponse {
@@ -97,6 +105,29 @@ export interface MediaSize {
 
 // ---- Pages ----------------------------------------------------------------
 
+export interface LocaleMetadata {
+  /** The locale that was requested. */
+  requested: string;
+  /** The locale that was actually resolved (after fallback). */
+  resolved: string;
+  /** Fields where a fallback locale was used. Map of field → fallback locale. */
+  fallbacks_used: Record<string, string>;
+}
+
+export interface LocaleInfo {
+  locale: string;
+  completeness: number;
+}
+
+export interface LocalesResponse {
+  locales: string[];
+  default: string;
+}
+
+export interface PageLocalesResponse {
+  locales: LocaleInfo[];
+}
+
 export interface Page {
   id: number;
   title: string;
@@ -110,6 +141,7 @@ export interface Page {
   published_at: string | null;
   parent_id?: number | null;
   collection?: PaginatedResult<CollectionItem>;
+  _locale?: LocaleMetadata;
 }
 
 export interface Section {
@@ -169,6 +201,8 @@ export interface GetPageParams {
   includeCss?: boolean;
   /** Sparse fields — only return these fields (id, slug, path always included). */
   fields?: string[];
+  /** BCP 47 locale (e.g. "de", "en", "de-AT"). Overrides client default. */
+  locale?: string;
 }
 
 export interface ListPagesParams extends PaginationParams {
@@ -178,6 +212,8 @@ export interface ListPagesParams extends PaginationParams {
   parentId?: number;
   /** Sparse fields. */
   fields?: string[];
+  /** BCP 47 locale. Overrides client default. */
+  locale?: string;
 }
 
 // ---- Collections ----------------------------------------------------------
@@ -189,6 +225,7 @@ export interface CollectionItem {
   sort_order: number;
   image_id: number | null;
   data: Record<string, unknown>;
+  _locale?: LocaleMetadata;
 }
 
 export type SortDirection = "asc" | "desc";
@@ -231,6 +268,8 @@ export interface ListCollectionParams extends PaginationParams {
   filter?: Record<string, FilterOperator>;
   /** Opaque cursor from a previous response. When set, `offset` is ignored. */
   cursor?: string;
+  /** BCP 47 locale. Overrides client default. */
+  locale?: string;
 }
 
 // ---- Globals --------------------------------------------------------------
@@ -239,6 +278,12 @@ export interface Global {
   slug: string;
   label: string;
   data: Record<string, unknown>;
+  _locale?: LocaleMetadata;
+}
+
+export interface GetGlobalParams {
+  /** BCP 47 locale. Overrides client default. */
+  locale?: string;
 }
 
 // ---- Errors (RFC 7807) ----------------------------------------------------

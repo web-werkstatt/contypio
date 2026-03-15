@@ -90,6 +90,15 @@ class SparseFieldsParams:
         return {f.strip() for f in self.fields.split(",") if f.strip()}
 
 
+@dataclass
+class LocaleParams:
+    """Optional locale parameter for content i18n."""
+    locale: str | None = Query(
+        default=None,
+        description="BCP 47 locale (e.g. de, en, de-AT). Falls back to tenant default.",
+    )
+
+
 def paginated_response(
     items: list,
     total: int,

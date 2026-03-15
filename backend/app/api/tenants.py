@@ -410,3 +410,74 @@ async def onboard_tenant(
         access_token=token,
         message=f"Tenant '{data.name}' erfolgreich erstellt",
     )
+
+
+# ---------------------------------------------------------------------------
+# Locale Configuration (i18n)
+# ---------------------------------------------------------------------------
+
+from pydantic import BaseModel
+
+
+class TenantLocaleUpdate(BaseModel):
+    locales: list[str]
+    default_language: str | None = None
+    fallback_chain: dict[str, list[str]] | None = None
+
+
+@router.put("/current/locales")
+async def update_tenant_locales(
+    body: TenantLocaleUpdate,
+    user: CmsUser = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Set enabled locales and fallback chain for the current tenant."""
+    from app.core.content_i18n import validate_locale
+
+    tenant = await db.get(CmsTenant, user.tenant_id)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    # Validate all locale codes
+    for loc in body.locales:
+        try:
+            validate_locale(loc)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid locale: {loc}")
+
+    tenant.locales = body.locales
+    if body.default_language is not None:
+        try:
+            validate_locale(body.default_language)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid default_language: {body.default_language}")
+        tenant.default_language = body.default_language
+
+    if body.fallback_chain is not None:
+        tenant.fallback_chain = body.fallback_chain
+
+    await db.flush()
+    await db.refresh(tenant)
+
+    return {
+        "locales": tenant.locales,
+        "default_language": tenant.default_language,
+        "fallback_chain": tenant.fallback_chain,
+    }
+
+
+@router.get("/current/locales")
+async def get_tenant_locales(
+    user: CmsUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get locale configuration for the current tenant."""
+    tenant = await db.get(CmsTenant, user.tenant_id)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    return {
+        "locales": tenant.locales or [],
+        "default_language": tenant.default_language,
+        "fallback_chain": tenant.fallback_chain or {},
+    }
