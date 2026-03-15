@@ -10,7 +10,7 @@ from app.auth.api_key import CmsApiKey, hash_api_key
 from app.core.config import settings
 from app.core.database import get_db
 from app.delivery.cache_headers import cached_json_response
-from app.delivery.query_params import FilterParams, PaginationParams, SortParams, paginated_response
+from app.delivery.query_params import CursorParams, FilterParams, PaginationParams, SortParams, decode_cursor, encode_cursor, paginated_response
 from app.delivery.tenant_resolver import get_delivery_tenant_id
 from app.models.collection import CmsCollection, CmsCollectionSchema
 from app.models.media import CmsMedia
@@ -227,6 +227,7 @@ async def get_collection(
     request: Request,
     pagination: PaginationParams = Depends(),
     sorting: SortParams = Depends(),
+    cursor_params: CursorParams = Depends(),
     search: str | None = Query(default=None, description="Search in title and data"),
     tenant_id: UUID = Depends(get_delivery_tenant_id),
     db: AsyncSession = Depends(get_db),
@@ -279,14 +280,37 @@ async def get_collection(
     sort_col = _get_sort_column(sort_field) or CmsCollection.sort_order
     order_clause = sort_col.desc() if sort_dir == "desc" else sort_col.asc()
 
+    # Cursor-based pagination (keyset): overrides offset when provided
+    use_cursor = cursor_params.cursor is not None
+    cursor_data = None
+    if use_cursor:
+        cursor_data = decode_cursor(cursor_params.cursor)
+        if cursor_data is None:
+            raise HTTPException(status_code=400, detail="Invalid cursor format")
+        # Keyset condition: WHERE (sort_col, id) > (cursor_value, cursor_id)
+        cursor_id = cursor_data.get("id")
+        cursor_value = cursor_data.get("value")
+        if cursor_id is not None:
+            if sort_dir == "desc":
+                base_filter.append(
+                    (sort_col < cursor_value) | ((sort_col == cursor_value) & (CmsCollection.id < cursor_id))
+                )
+            else:
+                base_filter.append(
+                    (sort_col > cursor_value) | ((sort_col == cursor_value) & (CmsCollection.id > cursor_id))
+                )
+
     # Query with pagination
-    result = await db.execute(
+    query = (
         select(CmsCollection)
         .where(*base_filter)
-        .order_by(order_clause, CmsCollection.title)
+        .order_by(order_clause, CmsCollection.id.desc() if sort_dir == "desc" else CmsCollection.id.asc())
         .limit(pagination.limit)
-        .offset(pagination.offset)
     )
+    if not use_cursor:
+        query = query.offset(pagination.offset)
+
+    result = await db.execute(query)
     items = list(result.scalars().all())
     schema_fields = schema.fields or []
 
@@ -303,19 +327,36 @@ async def get_collection(
             "image_id": i.image_id,
         })
 
-    response_data = paginated_response(resolved_items, total, pagination.limit, pagination.offset)
+    # Build cursor tokens for next/prev navigation
+    next_cursor = None
+    prev_cursor = None
+    if items:
+        last = items[-1]
+        last_sort_value = getattr(last, sort_field, last.sort_order)
+        next_cursor = encode_cursor({"id": last.id, "sort": sort_field, "value": last_sort_value})
+
+        first = items[0]
+        first_sort_value = getattr(first, sort_field, first.sort_order)
+        prev_cursor = encode_cursor({"id": first.id, "sort": sort_field, "value": first_sort_value})
+
+    response_data = paginated_response(
+        resolved_items, total, pagination.limit, pagination.offset,
+        next_cursor=next_cursor if (pagination.offset + pagination.limit < total or use_cursor and len(items) == pagination.limit) else None,
+        prev_cursor=prev_cursor if (pagination.offset > 0 or use_cursor) else None,
+    )
     return cached_json_response(response_data, request, "collection")
 
 
-@collections_plural_router.get("/{key}", summary="Get collection items", description="Fetch paginated items from a collection by key. Supports sorting, search, filtering and sparse fields. Resolves media and relation references automatically.")
+@collections_plural_router.get("/{key}", summary="Get collection items", description="Fetch paginated items from a collection by key. Supports sorting, search, filtering, cursor pagination and sparse fields. Resolves media and relation references automatically.")
 async def get_collection_plural(
     key: str,
     request: Request,
     pagination: PaginationParams = Depends(),
     sorting: SortParams = Depends(),
+    cursor_params: CursorParams = Depends(),
     search: str | None = Query(default=None, description="Search in title and data"),
     tenant_id: UUID = Depends(get_delivery_tenant_id),
     db: AsyncSession = Depends(get_db),
 ):
     """Plural URL alias: /content/collections/{key} -> delegates to get_collection."""
-    return await get_collection(key, request, pagination, sorting, search, tenant_id, db)
+    return await get_collection(key, request, pagination, sorting, cursor_params, search, tenant_id, db)

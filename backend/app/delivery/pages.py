@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -205,3 +206,80 @@ async def get_tree(
             roots.append(node)
 
     return cached_json_response(roots, request, "tree")
+
+
+# ---------------------------------------------------------------------------
+# Batch endpoint — fetch multiple pages in a single request
+# ---------------------------------------------------------------------------
+
+class BatchPagesRequest(BaseModel):
+    slugs: list[str] = Field(..., min_length=1, max_length=50, description="Page slugs to fetch (max 50)")
+    fields: str | None = Field(default=None, description="Comma-separated sparse fields")
+    include_css: bool = Field(default=False, description="Include CSS for grid layouts")
+
+
+@router.post("/pages/batch", summary="Batch fetch pages", description="Fetch multiple pages by slug in a single request. Max 50 slugs. Returns a map of slug→page (null if not found).")
+async def batch_pages(
+    body: BatchPagesRequest,
+    request: Request,
+    tenant_id: UUID = Depends(get_delivery_tenant_id),
+    db: AsyncSession = Depends(get_db),
+):
+    # Parse sparse fields
+    field_set: set[str] | None = None
+    if body.fields:
+        field_set = {f.strip() for f in body.fields.split(",") if f.strip()}
+
+    needs_sections = field_set is None or "sections" in field_set
+
+    # Single query: WHERE slug IN (...)
+    result = await db.execute(
+        select(CmsPage).where(
+            CmsPage.tenant_id == tenant_id,
+            CmsPage.status == "published",
+            CmsPage.slug.in_(body.slugs),
+        )
+    )
+    pages_by_slug: dict[str, CmsPage] = {p.slug: p for p in result.scalars().all()}
+
+    items: dict[str, dict | None] = {}
+    not_found: list[str] = []
+
+    for slug in body.slugs:
+        page = pages_by_slug.get(slug)
+        if not page:
+            items[slug] = None
+            not_found.append(slug)
+            continue
+
+        sections = page.sections or []
+        if needs_sections:
+            sections = await resolve_dynamic_blocks(sections, tenant_id=tenant_id, db=db)
+            image_ids = await collect_image_ids(sections)
+            media_cache = await build_media_cache(image_ids, tenant_id, db)
+            resolved = resolve_sections(sections, media_cache)
+            resolved = resolve_grid_layouts(resolved, include_css=body.include_css)
+        else:
+            resolved = []
+
+        page_dict: dict = {
+            "id": page.id,
+            "title": page.title,
+            "slug": page.slug,
+            "path": page.path,
+            "page_type": page.page_type,
+            "collection_key": page.collection_key,
+            "seo": page.seo or {},
+            "hero": page.hero or {},
+            "sections": resolved,
+            "published_at": page.published_at.isoformat() if page.published_at else None,
+        }
+        items[slug] = _apply_sparse_fields(page_dict, field_set)
+
+    resolved_count = len(body.slugs) - len(not_found)
+    response_data = {
+        "items": items,
+        "resolved": resolved_count,
+        "not_found": not_found,
+    }
+    return cached_json_response(response_data, request, "pages")

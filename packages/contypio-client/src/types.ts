@@ -4,6 +4,13 @@
 
 // ---- Client configuration -------------------------------------------------
 
+export interface RetryConfig {
+  /** Maximum number of retries on 429 responses (default: 3). */
+  maxRetries?: number;
+  /** Initial backoff delay in ms (default: 1000). Doubles with each retry. */
+  initialDelayMs?: number;
+}
+
 export interface ContypioConfig {
   /** Base URL of your Contypio instance (e.g. "https://cms.example.com"). */
   baseUrl: string;
@@ -22,6 +29,12 @@ export interface ContypioConfig {
    * Defaults to the global `fetch`. Useful for testing or edge runtimes.
    */
   fetch?: typeof fetch;
+
+  /**
+   * Retry configuration for rate-limited requests (HTTP 429).
+   * Set to `false` to disable retries. Default: 3 retries with exponential backoff.
+   */
+  retry?: RetryConfig | false;
 }
 
 // ---- Pagination -----------------------------------------------------------
@@ -32,6 +45,10 @@ export interface PaginatedResult<T> {
   limit: number;
   offset: number;
   has_more: boolean;
+  /** Opaque cursor for the next page (cursor-based pagination). */
+  next_cursor?: string | null;
+  /** Opaque cursor for the previous page (cursor-based pagination). */
+  prev_cursor?: string | null;
 }
 
 export interface PaginationParams {
@@ -39,6 +56,26 @@ export interface PaginationParams {
   limit?: number;
   /** Number of items to skip (default 0). */
   offset?: number;
+}
+
+// ---- Batch ----------------------------------------------------------------
+
+export interface BatchPagesRequest {
+  /** Page slugs to fetch (max 50). */
+  slugs: string[];
+  /** Comma-separated sparse fields. */
+  fields?: string;
+  /** Include CSS for grid layouts. */
+  include_css?: boolean;
+}
+
+export interface BatchPagesResponse {
+  /** Map of slug to page (null if not found). */
+  items: Record<string, Page | null>;
+  /** Number of successfully resolved pages. */
+  resolved: number;
+  /** Slugs that were not found. */
+  not_found: string[];
 }
 
 // ---- Media ----------------------------------------------------------------
@@ -192,6 +229,8 @@ export interface ListCollectionParams extends PaginationParams {
    * Example: `{ price: { gte: "100" }, status: { eq: "active" } }`
    */
   filter?: Record<string, FilterOperator>;
+  /** Opaque cursor from a previous response. When set, `offset` is ignored. */
+  cursor?: string;
 }
 
 // ---- Globals --------------------------------------------------------------

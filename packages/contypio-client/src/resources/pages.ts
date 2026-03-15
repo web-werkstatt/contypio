@@ -6,8 +6,9 @@ import type {
   GetPageParams,
   ListPagesParams,
   PaginatedResult,
+  BatchPagesResponse,
 } from "../types.js";
-import { request } from "../fetch.js";
+import { request, postRequest } from "../fetch.js";
 
 export class PagesResource {
   constructor(private readonly config: ContypioConfig) {}
@@ -65,5 +66,27 @@ export class PagesResource {
    */
   async tree(): Promise<TreeNode[]> {
     return request<TreeNode[]>(this.config, "/content/tree");
+  }
+
+  /**
+   * Fetch multiple pages in a single request (max 50).
+   * Returns a map of slug to page (null if not found).
+   *
+   * @example
+   * ```ts
+   * const result = await client.pages.batch(["home", "about", "blog"]);
+   * const homePage = result.items["home"];      // Page | null
+   * const missing = result.not_found;            // ["blog"]
+   * ```
+   */
+  async batch(
+    slugs: string[],
+    params?: { fields?: string[]; includeCss?: boolean },
+  ): Promise<BatchPagesResponse> {
+    return postRequest<BatchPagesResponse>(this.config, "/content/pages/batch", {
+      slugs,
+      fields: params?.fields?.join(","),
+      include_css: params?.includeCss ?? false,
+    });
   }
 }

@@ -12,7 +12,12 @@ Filter syntax (bracket notation):
   ?filter[page_type]=listing
   ?filter[price][gte]=100
   ?page_type=listing    (legacy flat params, backwards compatible)
+
+Cursor pagination (keyset):
+  ?cursor=eyJpZCI6MTAwfQ&limit=20
 """
+import base64
+import json
 import re
 from dataclasses import dataclass, field
 
@@ -90,12 +95,46 @@ def paginated_response(
     total: int,
     limit: int,
     offset: int,
+    next_cursor: str | None = None,
+    prev_cursor: str | None = None,
 ) -> dict:
-    """Standard paginated response envelope."""
-    return {
+    """Standard paginated response envelope with optional cursor fields."""
+    result = {
         "items": items,
         "total": total,
         "limit": limit,
         "offset": offset,
         "has_more": offset + limit < total,
     }
+    if next_cursor is not None:
+        result["next_cursor"] = next_cursor
+    if prev_cursor is not None:
+        result["prev_cursor"] = prev_cursor
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Cursor-based pagination (keyset)
+# ---------------------------------------------------------------------------
+
+def encode_cursor(data: dict) -> str:
+    """Encode a cursor dict as URL-safe Base64 JSON."""
+    return base64.urlsafe_b64encode(json.dumps(data, default=str).encode()).decode().rstrip("=")
+
+
+def decode_cursor(cursor: str) -> dict | None:
+    """Decode a cursor string back to a dict. Returns None on invalid input."""
+    try:
+        # Re-add padding
+        padding = 4 - len(cursor) % 4
+        if padding != 4:
+            cursor += "=" * padding
+        return json.loads(base64.urlsafe_b64decode(cursor))
+    except (ValueError, json.JSONDecodeError):
+        return None
+
+
+@dataclass
+class CursorParams:
+    """Optional cursor-based pagination. When cursor is set, offset is ignored."""
+    cursor: str | None = Query(default=None, description="Opaque cursor from previous response (overrides offset)")

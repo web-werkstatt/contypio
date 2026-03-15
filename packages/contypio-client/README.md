@@ -93,6 +93,11 @@ const listings = await client.pages.list({ pageType: "listing" });
 // Hierarchical tree (for navigation)
 const tree = await client.pages.tree();
 // [{ title, slug, path, children: [{ … }] }]
+
+// Batch fetch — multiple pages in a single request (max 50)
+const batch = await client.pages.batch(["home", "about", "blog"]);
+// batch.items["home"]   → Page | null
+// batch.not_found       → ["blog"]
 ```
 
 ## Collections
@@ -119,6 +124,18 @@ const results = await client.collections.list("products", {
   search: "beach",
   limit: 5,
 });
+
+// Cursor-based pagination (efficient for large datasets)
+const page1 = await client.collections.list("tours", { limit: 50 });
+const page2 = await client.collections.list("tours", {
+  limit: 50,
+  cursor: page1.next_cursor!,
+});
+
+// Async iterator — automatically pages through all items
+for await (const tour of client.collections.iterate("tours")) {
+  console.log(tour.title);
+}
 
 // Available filter operators: eq, ne, gt, gte, lt, lte, contains, in
 ```
@@ -158,6 +175,25 @@ try {
     console.error(err.message);
   }
 }
+```
+
+## Retry on Rate Limit
+
+The SDK automatically retries on HTTP 429 (Too Many Requests) with exponential backoff.
+Default: 3 retries with 1s/2s/4s delays.
+
+```typescript
+// Custom retry config
+const client = createClient({
+  baseUrl: "https://cms.example.com",
+  retry: { maxRetries: 5, initialDelayMs: 500 },
+});
+
+// Disable retries
+const client = createClient({
+  baseUrl: "https://cms.example.com",
+  retry: false,
+});
 ```
 
 ## Framework Examples

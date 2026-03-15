@@ -71,6 +71,32 @@ All list endpoints return paginated results:
 
 ---
 
+## Cursor Pagination
+
+For large collections (100+ items), cursor-based pagination is more efficient than offset.
+Instead of `OFFSET N` (which scans all skipped rows), cursors use keyset pagination.
+
+```
+# First page
+GET /content/collections/tours?limit=50
+
+# Next page using cursor from response
+GET /content/collections/tours?limit=50&cursor=eyJpZCI6NTAsInNvcnQiOiJzb3J0X29yZGVyIiwidmFsdWUiOjUwfQ
+```
+
+When `cursor` is provided, `offset` is ignored. Both pagination styles can coexist — use
+offset for simple cases, cursors for large datasets or infinite scroll.
+
+The SDK provides an async iterator that handles cursor pagination automatically:
+
+```typescript
+for await (const item of client.collections.iterate("tours")) {
+  console.log(item.title);
+}
+```
+
+---
+
 ## Sorting
 
 Supported on collection endpoints. Three syntax variants:
@@ -318,6 +344,48 @@ Hierarchical page tree with parent-child relationships. Useful for navigation me
 
 ---
 
+### POST /content/pages/batch
+
+Fetch multiple pages in a single request. Optimized for SSG builds that need many pages at once.
+
+**Request Body:**
+
+```json
+{
+  "slugs": ["homepage", "about", "contact", "blog"],
+  "fields": "title,seo,sections",
+  "include_css": false
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slugs` | string[] | Page slugs to fetch (required, max 50) |
+| `fields` | string | Comma-separated sparse fields (optional) |
+| `include_css` | boolean | Include CSS for grid layouts (default: `false`) |
+
+**Response: `200 OK`**
+
+```json
+{
+  "items": {
+    "homepage": { "id": 1, "title": "Homepage", "slug": "homepage", "..." : "..." },
+    "about": { "id": 2, "title": "About", "slug": "about", "..." : "..." },
+    "contact": null,
+    "blog": { "id": 4, "title": "Blog", "slug": "blog", "..." : "..." }
+  },
+  "resolved": 3,
+  "not_found": ["contact"]
+}
+```
+
+Pages that don't exist return `null` in the items map and are listed in `not_found`.
+No 404 error is thrown for missing pages — the response is always 200.
+
+**Errors:** `422 Validation Error` (more than 50 slugs, empty list)
+
+---
+
 ### GET /content/collections/{key}
 
 Fetch paginated items from a collection. Media references and relations are automatically resolved.
@@ -329,6 +397,7 @@ Fetch paginated items from a collection. Media references and relations are auto
 | `key` | path | string | Collection key (required) |
 | `limit` | query | integer | Items per page (default: 20) |
 | `offset` | query | integer | Items to skip (default: 0) |
+| `cursor` | query | string | Opaque cursor from previous response (overrides offset) |
 | `sort` | query | string | Sort field (default: `sort_order`) |
 | `search` | query | string | Full-text search in title and data |
 | `filter[field][op]` | query | string | Bracket-notation filter |
@@ -367,11 +436,15 @@ Fetch paginated items from a collection. Media references and relations are auto
   "total": 156,
   "limit": 20,
   "offset": 0,
-  "has_more": true
+  "has_more": true,
+  "next_cursor": "eyJpZCI6MTIwLCJzb3J0Ijoic29ydF9vcmRlciIsInZhbHVlIjoyMH0",
+  "prev_cursor": "eyJpZCI6MTAxLCJzb3J0Ijoic29ydF9vcmRlciIsInZhbHVlIjoxfQ"
 }
 ```
 
-**Errors:** `404 Not Found` (collection does not exist), `401 Unauthorized` (invalid API key), `403 Forbidden` (API key lacks scope)
+**Cursor Pagination:** When `cursor` is provided, `offset` is ignored. The cursor uses keyset pagination (`WHERE (sort_col, id) > (value, cursor_id)`) which is efficient even for large datasets. Both `next_cursor` and `prev_cursor` are returned when applicable.
+
+**Errors:** `404 Not Found` (collection does not exist), `401 Unauthorized` (invalid API key), `403 Forbidden` (API key lacks scope), `400 Bad Request` (invalid cursor format)
 
 ---
 

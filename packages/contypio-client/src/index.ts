@@ -17,9 +17,13 @@ export { ContypioError, ContypioNetworkError } from "./errors.js";
 export type {
   // Config
   ContypioConfig,
+  RetryConfig,
   // Pagination
   PaginatedResult,
   PaginationParams,
+  // Batch
+  BatchPagesRequest,
+  BatchPagesResponse,
   // Media
   Media,
   MediaSize,
