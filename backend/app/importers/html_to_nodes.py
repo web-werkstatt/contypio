@@ -54,8 +54,10 @@ def _find_sections(root: Tag) -> list[Tag]:
     if len(sections) >= 2:
         return [s for s in sections if isinstance(s, Tag)]
 
-    # 4. Klassen-basierte Sections (article, section CSS-Klasse)
-    articles = root.find_all(class_=re.compile(r"section|article"))
+    # 4. Klassen-basierte Sections (exact class match, not partial)
+    #    Match "section" or "article" as standalone class, not as substring
+    #    (avoid matching "section-white", "homepage-section-header" etc.)
+    articles = root.find_all(class_=re.compile(r"(?:^|\s)(?:section|article)(?:\s|$)"))
     if len(articles) >= 2:
         return [a for a in articles if isinstance(a, Tag)]
 
@@ -196,6 +198,9 @@ def _classify_div(el: Tag) -> NodeType:
     # CSS-Hints als sekundäres Signal
     if re.search(r"grid|autogrid|row|columns|dreispaltig", classes, re.IGNORECASE):
         return NodeType.GRID
+    # Tailwind responsive grid: sm:grid-cols-2, md:grid-cols-3 etc.
+    if re.search(r"(?:sm|md|lg|xl):grid-cols-\d", classes):
+        return NodeType.GRID
 
     # Bild-Container mit Overlay-Text (ce_bgimage → section-artiger Block)
     if re.search(r"ce_bgimage", classes, re.IGNORECASE):
@@ -206,10 +211,15 @@ def _classify_div(el: Tag) -> NodeType:
         if el.find("img"):
             return NodeType.FIGURE
 
-    # Gallery-Container
+    # Gallery-Container (incl. team-gallery with image items)
     if re.search(r"ce_gallery|gallery", classes, re.IGNORECASE):
         if el.find("img"):
             return NodeType.GRID
+
+    # Team/image gallery items (div with img + overlay)
+    if re.search(r"gallery-item", classes, re.IGNORECASE):
+        if el.find("img"):
+            return NodeType.FIGURE
 
     # Iconbox-Container (oft als Cards verwendet)
     if re.search(r"ce_iconbox", classes, re.IGNORECASE):
@@ -267,8 +277,10 @@ def _detect_grid(el: Tag, children: list[Node]) -> NodeType:
     """Erkennt ob ein GROUP-Node eigentlich ein GRID ist."""
     classes = " ".join(el.get("class", []))
 
-    # CSS-Hint
+    # CSS-Hint (incl. Tailwind responsive: sm:grid-cols-2 etc.)
     if re.search(r"grid|autogrid|row|columns|flex", classes, re.IGNORECASE):
+        return NodeType.GRID
+    if re.search(r"(?:sm|md|lg|xl):grid-cols-\d", classes):
         return NodeType.GRID
 
     # Struktureller Hint: 2+ gleichartige Kinder
@@ -285,8 +297,12 @@ def _estimate_grid_columns(el: Tag, children: list[Node]) -> int:
     """Schätzt die Spaltenanzahl eines Grids."""
     classes = " ".join(el.get("class", []))
 
-    # CSS-Hint für Spaltenanzahl
-    col_match = re.search(r"(?:grid-cols-|col-)(\d+)", classes)
+    # CSS-Hint für Spaltenanzahl (incl. Tailwind responsive: sm:grid-cols-2 etc.)
+    # Take the largest column count from any breakpoint
+    col_matches = re.findall(r"(?:(?:sm|md|lg|xl):)?grid-cols-(\d+)", classes)
+    if col_matches:
+        return max(int(m) for m in col_matches)
+    col_match = re.search(r"col-(\d+)", classes)
     if col_match:
         return int(col_match.group(1))
 

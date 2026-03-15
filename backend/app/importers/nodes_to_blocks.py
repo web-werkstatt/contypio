@@ -24,7 +24,16 @@ def convert_tree_to_sections(tree: Node) -> list[dict]:
 
 
 def _convert_section(node: Node) -> dict | None:
-    """Konvertiert einen SECTION/GROUP-Node in eine CMS-Section."""
+    """Konvertiert einen SECTION/GROUP-Node in eine CMS-Section.
+
+    Wenn ein Top-Level GRID mit 2+ Spalten gefunden wird, erzeuge eine
+    Multi-Column Section statt alles in eine einzelne Column zu packen.
+    """
+    # Look for a top-level GRID child that defines multi-column layout
+    multi_col_grid = _find_multi_column_grid(node)
+    if multi_col_grid:
+        return _convert_multi_column_section(node, multi_col_grid)
+
     blocks = _convert_node_to_blocks(node)
     if not blocks:
         return None
@@ -32,6 +41,89 @@ def _convert_section(node: Node) -> dict | None:
     layout = _detect_layout(node)
     columns = [{"id": _new_id(), "blocks": blocks}]
     return {"id": _new_id(), "layout": layout, "columns": columns}
+
+
+def _find_multi_column_grid(node: Node) -> Node | None:
+    """Find a GRID child that represents a multi-column page layout (2-4 cols).
+
+    Searches up to 3 levels deep through GROUP/SECTION wrappers
+    (e.g. section > div.page-container > div.grid).
+    """
+    for child in node.children:
+        if child.type == NodeType.GRID:
+            cols = child.props.get("columns", 1)
+            # Only treat as multi-column if it has 2-4 direct structural children
+            structural = [c for c in child.children if c.type in (
+                NodeType.GROUP, NodeType.FIGURE, NodeType.GRID, NodeType.SECTION,
+            )]
+            if 2 <= cols <= 4 and len(structural) >= 2:
+                return child
+        # Look deeper through wrapper divs (page-container etc.)
+        if child.type in (NodeType.GROUP, NodeType.SECTION) and not _has_content_blocks(child):
+            found = _find_multi_column_grid(child)
+            if found:
+                return found
+    return None
+
+
+def _has_content_blocks(node: Node) -> bool:
+    """Check if a node has direct content (heading, paragraph, image) children."""
+    content_types = {
+        NodeType.HEADING, NodeType.PARAGRAPH, NodeType.IMAGE,
+        NodeType.FIGURE, NodeType.BUTTON, NodeType.LINK,
+    }
+    return any(c.type in content_types for c in node.children)
+
+
+def _convert_multi_column_section(node: Node, grid_node: Node) -> dict | None:
+    """Convert a section with a multi-column GRID into a proper multi-column CMS section."""
+    cols = grid_node.props.get("columns", 2)
+    layout_map = {2: "two-col-equal", 3: "three-col-equal", 4: "four-col-equal"}
+    layout = layout_map.get(cols, "two-col-equal")
+
+    # Collect blocks before the grid (e.g. section title heading)
+    pre_blocks = _collect_pre_grid_blocks(node, grid_node)
+
+    # Convert each grid child into a column
+    columns = []
+    for child in grid_node.children:
+        blocks = _convert_node_to_blocks(child)
+        if blocks:
+            columns.append({"id": _new_id(), "blocks": blocks})
+
+    if not columns:
+        return None
+
+    # If there are pre-blocks (e.g. a title), prepend to first column
+    if pre_blocks:
+        columns[0]["blocks"] = pre_blocks + columns[0]["blocks"]
+
+    return {"id": _new_id(), "layout": layout, "columns": columns}
+
+
+def _collect_pre_grid_blocks(node: Node, grid_node: Node) -> list[dict]:
+    """Collect content blocks that appear before the grid (e.g. section heading)."""
+    blocks = []
+    for child in _walk_to_grid(node, grid_node):
+        if child.type == NodeType.HEADING:
+            blocks.append(_make_block("richText", {
+                "title": child.props.get("text", ""),
+                "content": "",
+            }))
+    return blocks
+
+
+def _walk_to_grid(node: Node, target: Node) -> list[Node]:
+    """Walk children collecting siblings that come before the target grid."""
+    result = []
+    for child in node.children:
+        if child is target:
+            break
+        if child.type in (NodeType.GROUP, NodeType.SECTION):
+            result.extend(_walk_to_grid(child, target))
+        else:
+            result.append(child)
+    return result
 
 
 def _detect_layout(node: Node) -> str:
@@ -92,7 +184,7 @@ def _match_pattern(node: Node, siblings: list[Node], idx: int, depth: int = 0) -
     if result:
         return result
 
-    # Gallery: GRID mit 3+ IMAGE/FIGURE
+    # Gallery: GRID mit 3+ IMAGE/FIGURE (or team-gallery with 2+)
     result = _match_gallery(node)
     if result:
         return result
@@ -199,21 +291,36 @@ def _details_to_faq_item(node: Node) -> dict:
 
 
 def _match_gallery(node: Node) -> dict | None:
-    """Gallery: GRID mit 3+ direkten IMAGE/FIGURE-Kindern."""
+    """Gallery: GRID mit 2+ IMAGE/FIGURE-Kindern (direct or wrapped in GROUP/GRID)."""
     if node.type != NodeType.GRID:
         return None
-    images = [c for c in node.children if c.type in (NodeType.IMAGE, NodeType.FIGURE)]
-    if len(images) < 3:
-        return None
+
     img_data = []
-    for img in images:
-        if img.type == NodeType.IMAGE:
-            img_data.append({"src": img.props.get("src", ""), "alt": img.props.get("alt", "")})
-        elif img.type == NodeType.FIGURE:
-            inner = next((c for c in img.children if c.type == NodeType.IMAGE), None)
-            if inner:
-                img_data.append({"src": inner.props.get("src", ""), "alt": inner.props.get("alt", "")})
+    for child in node.children:
+        img = _extract_gallery_image(child)
+        if img:
+            img_data.append(img)
+
+    if len(img_data) < 2:
+        return None
+
     return {"block": _make_block("gallery", {"title": "", "images": img_data, "layout": "grid"}), "consumed": 1}
+
+
+def _extract_gallery_image(node: Node) -> dict | None:
+    """Extract image data from a gallery item (IMAGE, FIGURE, or wrapper with single IMAGE)."""
+    if node.type == NodeType.IMAGE:
+        return {"src": node.props.get("src", ""), "alt": node.props.get("alt", "")}
+    if node.type == NodeType.FIGURE:
+        inner = next((c for c in node.children if c.type == NodeType.IMAGE), None)
+        if inner:
+            return {"src": inner.props.get("src", ""), "alt": inner.props.get("alt", "")}
+    # Wrapper (GROUP/GRID with a single IMAGE child, e.g. team-gallery-item)
+    if node.type in (NodeType.GROUP, NodeType.GRID):
+        images = node.find_all(NodeType.IMAGE)
+        if len(images) == 1:
+            return {"src": images[0].props.get("src", ""), "alt": images[0].props.get("alt", "")}
+    return None
 
 
 def _match_cards(node: Node) -> dict | None:
@@ -248,13 +355,21 @@ def _match_cards(node: Node) -> dict | None:
 
 
 def _match_cta(node: Node, siblings: list[Node], idx: int) -> dict | None:
-    """CTA: HEADING gefolgt von PARAGRAPH + BUTTON/LINK."""
+    """CTA: HEADING gefolgt von PARAGRAPH + BUTTON/LINK (direct or wrapped in GROUP)."""
     if node.type != NodeType.HEADING:
         return None
     # Schaue voraus: PARAGRAPH + BUTTON/LINK
     remaining = siblings[idx + 1:]
     para = next((n for n in remaining[:2] if n.type == NodeType.PARAGRAPH), None)
     btn = next((n for n in remaining[:3] if n.type in (NodeType.BUTTON, NodeType.LINK)), None)
+    # Also check for BUTTON wrapped in a GROUP (e.g. <div class="mt-6"><a class="btn">)
+    if not btn:
+        for n in remaining[:3]:
+            if n.type == NodeType.GROUP:
+                inner_btn = next((c for c in n.children if c.type in (NodeType.BUTTON, NodeType.LINK)), None)
+                if inner_btn:
+                    btn = inner_btn
+                    break
     if not btn:
         return None
     consumed = 1

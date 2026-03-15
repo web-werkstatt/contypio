@@ -33,7 +33,7 @@ class NodeType(str, Enum):
 
 # Erlaubte Kinder-Typen pro NodeType
 VALID_CHILDREN: dict[NodeType, set[NodeType] | None] = {
-    NodeType.PAGE: {NodeType.SECTION, NodeType.GROUP},
+    NodeType.PAGE: {NodeType.SECTION, NodeType.GROUP, NodeType.HEADING, NodeType.GRID},
     NodeType.SECTION: None,  # None = alle erlaubt
     NodeType.HEADING: set(),  # Leaf
     NodeType.PARAGRAPH: {NodeType.LINK, NodeType.IMAGE},
