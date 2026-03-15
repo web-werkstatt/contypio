@@ -58,6 +58,7 @@ async def lifespan(app: FastAPI):
     from app.models.webhook import CmsWebhook, CmsWebhookLog  # noqa: F401
     from app.auth.api_key import CmsApiKey  # noqa: F401
     from app.models.content_template import CmsContentTemplate  # noqa: F401
+    from app.models.audit_log import CmsAuditLog  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

@@ -66,6 +66,16 @@ def check_if_modified_since(request: Request, updated_at: datetime | None) -> bo
         return False
 
 
+def _strip_recursive(data: dict | list, strip_fn: callable) -> dict | list:
+    """Recursively apply strip function to dicts in data."""
+    if isinstance(data, dict):
+        cleaned = strip_fn(data)
+        return {k: _strip_recursive(v, strip_fn) if isinstance(v, (dict, list)) else v for k, v in cleaned.items()}
+    elif isinstance(data, list):
+        return [_strip_recursive(item, strip_fn) if isinstance(item, (dict, list)) else item for item in data]
+    return data
+
+
 def cached_json_response(
     data: dict | list,
     request: Request,
@@ -74,8 +84,14 @@ def cached_json_response(
 ) -> Response:
     """Build a JSON response with Cache-Control + ETag + Last-Modified headers.
 
+    Applies S9 BOPLA filtering to strip internal fields before serialization.
     Returns 304 Not Modified if client already has current version.
     """
+    from app.delivery.query_params import strip_internal_fields
+
+    # S9: Strip internal fields from delivery responses
+    data = _strip_recursive(data, strip_internal_fields)
+
     import json
     content_str = json.dumps(data, default=str)
     etag = generate_etag(content_str) if not updated_at else etag_from_timestamp(updated_at)
