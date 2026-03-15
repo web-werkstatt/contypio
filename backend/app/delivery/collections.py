@@ -280,8 +280,10 @@ async def get_collection(
     ]
 
     # Search filter (title + JSONB data cast to text)
+    # S11: Sanitize LIKE wildcards to prevent pattern injection
     if search:
-        search_pattern = f"%{search}%"
+        sanitized = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        search_pattern = f"%{sanitized}%"
         base_filter.append(
             CmsCollection.title.ilike(search_pattern)
             | func.cast(CmsCollection.data, String).ilike(search_pattern)

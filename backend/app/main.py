@@ -104,6 +104,7 @@ register_error_handlers(app)
 from app.core.rate_limit import RateLimitMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.middleware.https_enforcement import HTTPSEnforcementMiddleware
+from app.middleware.audit_log import AuditLogMiddleware
 from app.middleware.tenant_cors import TenantAwareCORSMiddleware
 
 # ---------------------------------------------------------------------------
@@ -114,6 +115,8 @@ from app.middleware.tenant_cors import TenantAwareCORSMiddleware
 # Inner layers (executed last on request, first on response)
 app.add_middleware(LocaleMiddleware)
 app.add_middleware(RateLimitMiddleware)
+# S10: Audit logging (admin API mutations only)
+app.add_middleware(AuditLogMiddleware)
 
 # Outer layers — must be added before CORS wrapping (LIFO: last added = first executed)
 # S1: API-specific security headers (CSP, Permissions-Policy, etc.)

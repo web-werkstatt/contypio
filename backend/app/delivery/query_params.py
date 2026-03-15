@@ -99,6 +99,15 @@ class LocaleParams:
     )
 
 
+# S9: BOPLA — internal fields that must never appear in delivery responses
+_INTERNAL_FIELDS = {"tenant_id", "created_by", "updated_by", "deleted_at", "hashed_password", "key_hash", "rotated_key_hash"}
+
+
+def strip_internal_fields(data: dict) -> dict:
+    """Remove internal fields from a delivery response dict (S9 BOPLA)."""
+    return {k: v for k, v in data.items() if k not in _INTERNAL_FIELDS}
+
+
 def paginated_response(
     items: list,
     total: int,

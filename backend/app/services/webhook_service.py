@@ -75,8 +75,7 @@ async def dispatch_test_event(
 
     payload = {"message": "Test-Ping vom CMS"}
     body = _build_body("test.ping", payload)
-    signature = _sign(wh.secret, body)
-    headers = _build_headers("test.ping", signature)
+    headers = _build_headers("test.ping", body, wh.secret)
 
     start = time.monotonic()
     try:
@@ -133,8 +132,7 @@ async def _fire_webhook(
 ) -> None:
     """Send webhook HTTP POST and log the result. Retry if edition allows."""
     body = _build_body(event, payload)
-    signature = _sign(secret, body)
-    headers = _build_headers(event, signature)
+    headers = _build_headers(event, body, secret)
 
     # Determine if retry is available for this tenant
     can_retry = await _tenant_has_feature(tenant_id, "webhook_retry")
@@ -213,14 +211,20 @@ def _build_body(event: str, payload: dict) -> str:
     )
 
 
-def _sign(secret: str, body: str) -> str:
-    return hmac.new(secret.encode(), body.encode(), hashlib.sha256).hexdigest()
+def _sign_v2(secret: str, timestamp: str, body: str) -> str:
+    """Signature v2: HMAC-SHA256 over 'timestamp.body' (S8 replay protection)."""
+    message = f"{timestamp}.{body}"
+    return hmac.new(secret.encode(), message.encode(), hashlib.sha256).hexdigest()
 
 
-def _build_headers(event: str, signature: str) -> dict[str, str]:
+def _build_headers(event: str, body: str, secret: str) -> dict[str, str]:
+    """Build webhook headers with v2 signature (timestamp-based replay protection)."""
+    ts = str(int(time.time()))
+    sig = _sign_v2(secret, ts, body)
     return {
         "Content-Type": "application/json",
-        "X-CMS-Event": event,
-        "X-CMS-Signature": f"sha256={signature}",
-        "User-Agent": "Contypio-Webhooks/1.0",
+        "X-Contypio-Event": event,
+        "X-Contypio-Signature": f"v2={sig}",
+        "X-Contypio-Timestamp": ts,
+        "User-Agent": "Contypio-Webhooks/2.0",
     }
