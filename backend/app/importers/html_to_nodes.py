@@ -27,12 +27,19 @@ def parse_html_to_tree(html: str) -> Node:
 
 
 def _remove_noise(soup: BeautifulSoup) -> None:
-    """Entfernt Navigation, Footer, Modals, Scripts etc."""
+    """Entfernt Navigation, Footer, Modals, Scripts, Kommentare etc."""
+    from bs4 import Comment
+    # Remove HTML comments (they get parsed as text and corrupt the node tree)
+    for comment in soup.find_all(string=lambda t: isinstance(t, Comment)):
+        comment.extract()
     for tag in soup.find_all(["nav", "footer", "header", "script", "style", "link", "noscript"]):
         tag.decompose()
-    for tag in soup.find_all(class_=re.compile(r"modal|cookie|mobile-nav")):
+    for tag in soup.find_all(class_=re.compile(r"modal|cookie|mobile-nav|lightbox")):
         tag.decompose()
-    for tag in soup.find_all(id=re.compile(r"modal|cookie")):
+    for tag in soup.find_all(id=re.compile(r"modal|cookie|lightbox")):
+        tag.decompose()
+    # Remove hidden elements (lightboxes, overlays)
+    for tag in soup.find_all(attrs={"aria-hidden": "true"}):
         tag.decompose()
 
 

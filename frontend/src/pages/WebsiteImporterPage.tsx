@@ -71,6 +71,26 @@ export default function WebsiteImporterPage() {
     });
   }, []);
 
+  // --- Section selection (indices to import per path) ---
+  const [sectionSelection, setSectionSelection] = useState<Record<string, number[]>>({});
+
+  const toggleSectionSelection = useCallback((path: string, sectionIndex: number) => {
+    setSectionSelection((prev) => {
+      const current = prev[path] || [];
+      const next = current.includes(sectionIndex)
+        ? current.filter((i) => i !== sectionIndex)
+        : [...current, sectionIndex].sort((a, b) => a - b);
+      return { ...prev, [path]: next };
+    });
+  }, []);
+
+  const selectAllSections = useCallback((path: string, count: number) => {
+    setSectionSelection((prev: Record<string, number[]>) => ({
+      ...prev,
+      [path]: count > 0 ? Array.from({ length: count }, (_, i) => i) : [],
+    }));
+  }, []);
+
   // --- Import ---
   const startImport = useCallback(async () => {
     setIsImporting(true);
@@ -89,7 +109,25 @@ export default function WebsiteImporterPage() {
       progress[path] = 'importing';
       setImportProgress({ ...progress });
       try {
-        await api.put(`/api/pages/${cmsPage.id}`, { sections: pr.result.sections });
+        const selected = sectionSelection[path];
+        const allSelected = !selected || selected.length === 0 || selected.length === pr.result.sections.length;
+
+        if (allSelected) {
+          await api.post('/api/website-import/apply', {
+            page_id: cmsPage.id,
+            sections: pr.result.sections,
+            mode: 'all',
+          });
+        } else {
+          // Only import selected sections
+          const selectedSections = selected.map((i) => pr.result!.sections[i]);
+          await api.post('/api/website-import/apply', {
+            page_id: cmsPage.id,
+            sections: selectedSections,
+            mode: 'replace',
+            replace_indices: selected,
+          });
+        }
         progress[path] = 'done';
         setPageResults((prev) => ({ ...prev, [path]: { ...prev[path], imported: true } }));
       } catch {
@@ -98,7 +136,7 @@ export default function WebsiteImporterPage() {
       setImportProgress({ ...progress });
     }
     setIsImporting(false);
-  }, [pageResults, cmsPages]);
+  }, [pageResults, cmsPages, sectionSelection]);
 
   // --- Summary berechnen ---
   const summary: ImportSummary = (() => {
@@ -177,7 +215,13 @@ export default function WebsiteImporterPage() {
             <StepMapping pageResults={pageResults} onUpdateMapping={updateMapping} onNext={() => completeAndGo('mapping', 'preview')} />
           )}
           {step === 'preview' && (
-            <StepPreview pageResults={pageResults} onNext={() => completeAndGo('preview', 'import')} />
+            <StepPreview
+              pageResults={pageResults}
+              sectionSelection={sectionSelection}
+              onToggleSection={toggleSectionSelection}
+              onSelectAll={selectAllSections}
+              onNext={() => completeAndGo('preview', 'import')}
+            />
           )}
           {step === 'import' && (
             <StepImport
