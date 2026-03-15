@@ -13,4 +13,6 @@ COPY . .
 
 RUN mkdir -p /app/uploads
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8060", "--reload"]
+EXPOSE 8060
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8060", "--workers", "2"]

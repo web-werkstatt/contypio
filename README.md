@@ -1,110 +1,171 @@
 # Contypio
 
-Hybrid Headless CMS — Content Modeling + Page Builder in einem System.
+**Hybrid Headless CMS** — Content Modeling + Page Builder in one system.
 
-Contypio kombiniert flexible Daten-Collections (wie Strapi/Directus) mit einem visuellen Seiten-Editor (wie WordPress) — als schlankes, self-hosted Headless CMS.
+Contypio combines flexible data collections (like Strapi/Directus) with a visual page editor (like WordPress) — as a lightweight, self-hosted headless CMS.
 
 ## Quick Start
 
+### One command:
+
 ```bash
-git clone https://git.webideas24.com/webideas24/contypio.git
+curl -fsSL https://get.contypio.com | bash
+```
+
+### Or manually:
+
+```bash
+git clone https://github.com/contypio/contypio.git
 cd contypio
-cp backend/.env.example backend/.env
-docker compose up
+cp .env.example .env    # edit passwords
+docker compose up -d
 ```
 
-- **Admin UI:** http://localhost:8061
-- **API:** http://localhost:8060
-- **API Docs:** http://localhost:8060/docs
-- **Default Login:** admin@contypio.com / admin
+Open **http://localhost:3000** — done.
 
-## Architektur
+Default login: `admin@localhost` / `admin` (change in `.env` before first start).
 
-```
-contypio/
-  backend/          FastAPI (Python) — REST API + Delivery API
-  frontend/         React 19 + TypeScript — Admin UI
-  hilfe-center/     Flask — Self-Hosted Help Center
-  packages/
-    contypio-client/  TypeScript SDK (@contypio/client)
-  starters/
-    astro/          Astro Starter Template
-```
+## What You Get
 
-| Komponente | Tech Stack |
+| Feature | Description |
 |---|---|
-| Backend | FastAPI, SQLAlchemy, PostgreSQL, Pydantic |
-| Frontend | React 19, TypeScript, Tailwind CSS, shadcn/ui, TipTap |
-| Delivery API | REST + JSON, ETag/Cache-Control, RFC 7807 Errors |
-| Auth | JWT + API Keys (Bearer Token mit Scopes) |
+| **Page Builder** | Visual section editor, 15+ block types, drag & drop, live preview |
+| **Collections** | Dynamic data schemas with 16 field types — no code needed |
+| **Globals** | Site settings, navigation, social media — managed centrally |
+| **Delivery API** | REST API with filtering, sorting, pagination, sparse fields |
+| **Media Library** | Drag & drop upload, auto WebP conversion, 3 thumbnail sizes |
+| **Multi-Tenant** | Isolated tenants per domain or `X-Tenant` header |
+| **i18n** | Field-level localization with fallback chains (BCP 47) |
+| **TypeScript SDK** | `@contypio/client` — zero deps, native fetch, full types |
 
-## Features
+## Architecture
 
-### Page Builder
-- Visueller Section-Editor mit 6 Layout-Optionen
-- 20+ Block-Typen (RichText, Hero, Gallery, Cards, CTA, FAQ, ...)
-- Drag & Drop Sortierung
-- Live Preview (Desktop, Tablet, Mobile)
-- Page Versioning mit Revision-History
+```
+localhost:3000
+     |
+   [nginx]
+   /  |  \
+  /   |   \
+UI  /api/  /content/  -->  [FastAPI]  -->  [PostgreSQL]
+```
 
-### Content Modeling
-- Dynamische Collections mit Schema-Builder (kein Code)
-- 16 Feld-Typen (Text, Number, Media, Relation, Repeater, ...)
-- Auto-generierte CRUD-Formulare
-- Schema Export/Import (YAML/JSON)
+| Component | Tech |
+|---|---|
+| Backend | Python 3.13, FastAPI, SQLAlchemy, PostgreSQL 17 |
+| Frontend | React 19, TypeScript, Tailwind CSS 4, shadcn/ui |
+| Delivery API | REST + JSON, ETag caching, RFC 7807 errors |
+| SDK | TypeScript, ESM, zero runtime dependencies |
 
-### Delivery API
-- `GET /content/pages/{slug}` — Einzelseite mit aufgeloesten Sections
-- `GET /content/pages` — Seitenliste (paginiert, filterbar)
-- `GET /content/collections/{key}` — Collection-Items
-- `GET /content/globals/{slug}` — Globale Konfiguration
-- `GET /content/tree` — Hierarchischer Seitenbaum
+## Delivery API
 
-Sorting: `?sort=-title`, `?sort=title:asc`
-Filter: `?filter[field]=value`, `?filter[price][gte]=100`
-Sparse Fields: `?fields=title,slug,seo`
-Pagination: `?limit=20&offset=0`
+```bash
+# Pages
+GET /content/pages/{slug}              # Single page (sections resolved)
+GET /content/pages                     # Paginated list
+GET /content/pages/{slug}?locale=de    # Localized content
+GET /content/tree                      # Hierarchical page tree
+POST /content/pages/batch              # Batch fetch (max 50)
 
-### Multi-Tenant
-- Isolierte Mandanten per Domain oder X-Tenant Header
-- Eigene Benutzer, Inhalte, Media pro Tenant
-- API Keys mit Scopes pro Tenant
+# Collections
+GET /content/collections/{key}         # Paginated items
+GET /content/collections/{key}?sort=-title&filter[price][gte]=100
 
-### Weitere Features
-- Media Library mit Ordnern und Drag & Drop Upload
-- Webhook-System (Content Events an externe Services)
-- i18n Admin UI (Deutsch + Englisch)
-- Website-to-CMS Importer (HTML analysieren und importieren)
-- AI Field Generation (OpenAI-kompatibel)
-- Modul-System (Block-Typen pro Edition freischaltbar)
-- Hilfe-Center (self-hosted, Markdown-basiert)
+# Globals
+GET /content/globals/{slug}            # Single global
+GET /content/globals/                  # All globals (batch)
 
-## Tech Stack
+# i18n
+GET /content/locales                   # Available locales
+GET /content/pages/{slug}/locales      # Translation completeness
+```
 
-### Backend
-- Python 3.13+
-- FastAPI 0.115+
-- SQLAlchemy 2.0+ (async)
-- PostgreSQL 17
-- Pydantic 2.10+
+**Sorting:** `?sort=-title`, `?sort=title:asc`
+**Filtering:** `?filter[field][op]=value` (eq, ne, gt, gte, lt, lte, contains, in)
+**Sparse Fields:** `?fields=title,slug,seo`
+**Pagination:** `?limit=20&offset=0` or cursor-based `?cursor=...`
 
-### Frontend
-- React 19
-- TypeScript (strict)
-- Vite
-- Tailwind CSS 4
-- shadcn/ui (51 Komponenten)
-- TipTap (WYSIWYG Editor)
-- React Query (Server State)
+## TypeScript SDK
+
+```bash
+npm install @contypio/client
+```
+
+```typescript
+import { createClient } from "@contypio/client";
+
+const client = createClient({
+  baseUrl: "https://cms.example.com",
+  locale: "de",  // optional default locale
+});
+
+// Pages
+const page = await client.pages.get("homepage");
+const tree = await client.pages.tree();
+
+// Collections with cursor pagination
+for await (const item of client.collections.iterate("blog-posts")) {
+  console.log(item.title);
+}
+
+// Globals
+const settings = await client.globals.get("site-settings");
+
+// Locales
+const { locales, default: defaultLocale } = await client.locales.list();
+```
+
+## Self-Hosting
+
+### Requirements
+
+- Docker + Docker Compose
+- 1 GB RAM minimum
+- PostgreSQL 17 (included in Docker setup)
+
+### Configuration
+
+All settings via `.env` file. See [`.env.example`](.env.example) for all options.
+
+| Variable | Default | Description |
+|---|---|---|
+| `CONTYPIO_PORT` | `3000` | Port for the Admin UI |
+| `POSTGRES_PASSWORD` | - | Database password |
+| `SECRET_KEY` | - | JWT signing key |
+| `DEFAULT_ADMIN_EMAIL` | `admin@localhost` | First admin account |
+| `DEFAULT_ADMIN_PASSWORD` | `admin` | First admin password |
+| `SEED_DEMO` | `false` | Create demo content on first start |
+
+### Commands
+
+```bash
+docker compose up -d              # Start
+docker compose stop               # Stop
+docker compose logs -f api        # View API logs
+docker compose down -v            # Reset everything
+```
+
+### Production with Reverse Proxy
+
+Put Caddy/nginx/Traefik in front for HTTPS:
+
+```caddyfile
+cms.example.com {
+    reverse_proxy localhost:3000
+}
+```
 
 ## Development
 
-### Voraussetzungen
-- Docker + Docker Compose
-- Node.js 22+ (fuer Frontend-Entwicklung)
-- Python 3.13+ (fuer Backend-Entwicklung)
+```bash
+# Start with dev overrides (hot-reload, exposed ports)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 
-### Lokale Entwicklung (ohne Docker)
+# Backend API:  http://localhost:8060
+# PostgreSQL:   localhost:7460
+# Admin UI:     http://localhost:3000
+```
+
+### Without Docker
 
 **Backend:**
 ```bash
@@ -122,36 +183,46 @@ npm install
 npm run dev
 ```
 
-### Tests
-```bash
-cd backend
-python -m pytest tests/ -v
-```
-
 ## API Authentication
 
-### Delivery API (oeffentlich)
-Kein Auth noetig. Nur veroeffentlichte Inhalte.
+| Endpoint | Auth | Description |
+|---|---|---|
+| `/content/*` | None | Public delivery API (read-only, published content) |
+| `/content/collections/*` | Optional API key | Scoped access per collection |
+| `/api/*` | JWT (Bearer) | Admin API (full CRUD) |
 
-### API Keys (optional)
+API keys:
 ```bash
 curl -H "Authorization: Bearer cms_abc123..." \
-  https://your-domain.com/content/collections/blog-posts
+  https://cms.example.com/content/collections/blog-posts
 ```
 
-### Admin API (geschuetzt)
-JWT Token via Login-Endpoint.
+## Project Structure
 
-## Deployment
-
-### Docker (empfohlen)
-```bash
-docker compose -f docker-compose.yml up -d
+```
+contypio/
+  backend/                 FastAPI REST API + Delivery API
+  frontend/                React Admin UI
+  hilfe-center/            Self-hosted help center (Flask + Markdown)
+  packages/
+    contypio-client/       TypeScript SDK (@contypio/client v0.3)
+  starters/
+    astro/                 Astro starter template
+  docker-compose.yml       Production setup (single port)
+  docker-compose.dev.yml   Development overrides
+  install.sh               One-command installer
 ```
 
-### Production
-Siehe `backend/Dockerfile.proxmox` und `frontend/Dockerfile` fuer optimierte Production-Builds.
+## Security
 
-## Lizenz
+- OWASP API Security Top 10 hardened
+- Security headers (CSP, HSTS, X-Frame-Options, ...)
+- Tenant-aware CORS (origins per tenant from DB)
+- Filter field allowlist (schema-based validation)
+- API key hashing (SHA-256)
+- Argon2 password hashing
+- Input validation via Pydantic
 
-Proprietaer — (c) webideas24. Alle Rechte vorbehalten.
+## License
+
+Proprietary — (c) webideas24. All rights reserved.

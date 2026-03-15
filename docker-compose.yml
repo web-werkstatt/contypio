@@ -1,53 +1,67 @@
-services:
-  cms-api:
-    build: ./backend
-    container_name: cms-api
-    ports:
-      - "8060:8060"
-    env_file: ./backend/.env
-    volumes:
-      - ./backend/app:/app/app
-      - cms-uploads:/app/uploads
-    depends_on:
-      cms-postgres:
-        condition: service_healthy
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - cms-network
+# Contypio CMS — Docker Compose
+#
+# Quick start:
+#   docker compose up -d
+#
+# Admin UI:  http://localhost:3000
+# API:       http://localhost:3000/content/
+#
+# First run creates admin account from .env credentials.
 
-  cms-postgres:
+services:
+  postgres:
     image: postgres:17-alpine
-    container_name: cms-postgres
-    ports:
-      - "7460:5432"
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: cms_db
-      POSTGRES_USER: cms_user
-      POSTGRES_PASSWORD: cms_pass
+      POSTGRES_DB: ${POSTGRES_DB:-contypio}
+      POSTGRES_USER: ${POSTGRES_USER:-contypio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-contypio}
     volumes:
-      - cms-pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cms_user -d cms_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-contypio} -d ${POSTGRES_DB:-contypio}"]
       interval: 5s
       retries: 5
     networks:
-      - cms-network
+      - contypio
 
-  cms-admin:
-    build: ./frontend
-    container_name: cms-admin
-    ports:
-      - "8061:80"
+  api:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-contypio}:${POSTGRES_PASSWORD:-contypio}@postgres:5432/${POSTGRES_DB:-contypio}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      CORS_ORIGINS: '["http://localhost:3000"]'
+      UPLOAD_DIR: /app/uploads
+      API_ASSET_URL: http://localhost:3000
+      DEFAULT_TENANT_SLUG: ${DEFAULT_TENANT_SLUG:-default}
+      DEFAULT_TENANT_NAME: ${DEFAULT_TENANT_NAME:-My Website}
+      DEFAULT_TENANT_DOMAIN: ${DEFAULT_TENANT_DOMAIN:-localhost}
+      DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL:-admin@localhost}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-admin}
+      DEFAULT_ADMIN_NAME: ${DEFAULT_ADMIN_NAME:-Admin}
+      SEED_DEMO: ${SEED_DEMO:-false}
+    volumes:
+      - uploads:/app/uploads
     depends_on:
-      - cms-api
+      postgres:
+        condition: service_healthy
     networks:
-      - cms-network
+      - contypio
+
+  admin:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${CONTYPIO_PORT:-3000}:80"
+    depends_on:
+      - api
+    networks:
+      - contypio
 
 volumes:
-  cms-pgdata:
-  cms-uploads:
+  pgdata:
+  uploads:
 
 networks:
-  cms-network:
-    name: cms-network
+  contypio:
