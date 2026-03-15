@@ -277,16 +277,23 @@ Phase 4 (Wochen 8-14): Content Localization (i18n)
 
 ---
 
-## Non-Goals / Bewusst nicht in dieser Roadmap
+## Geplant fuer v2
 
-| Feature | Warum nicht jetzt | Fruehestens |
-|---------|------------------|------------|
-| Global Search | Braucht eigenen Index (Meilisearch) | v2 |
-| GraphQL-Layer | Aufwand/Nutzen aktuell nicht gegeben | v2+ |
-| Realtime / Subscriptions | Webhooks decken Revalidation ab | v2 |
-| Plugin-System / Marketplace | Zu frueh | v3 |
-| RBAC-Ausbau | Enterprise-Feature | v2 |
-| Draft Preview URLs | Eigenstaendiges Feature | v1.1 |
+| Feature | Aufwand | Abhaengigkeit | Beschreibung |
+|---------|---------|---------------|--------------|
+| **GraphQL-Layer** | 3-5 Tage | Schema-Endpoint (Kapitel 5) | Auto-generiert aus Collection-Schemas via Strawberry. Query Depth Limits + Cost Analysis. Optional neben REST, kein Ersatz. |
+| Global Search | 5-8 Tage | Meilisearch/Elasticsearch | Cross-Type-Suche mit Relevanz-Scoring |
+| RBAC-Ausbau | 5-8 Tage | - | Feld-Level-Rechte, Custom Roles |
+| Draft Preview URLs | 2-3 Tage | - | Oeffentliche Vorschau-Links (`?preview=token`) |
+| Realtime / Subscriptions | 3-5 Tage | - | SSE fuer Dashboard-artige Anwendungen |
+
+## Non-Goals (kein konkreter Plan)
+
+| Feature | Warum nicht | Fruehestens |
+|---------|------------|------------|
+| Plugin-System / Marketplace | Zu frueh fuer aktuellen Reifegrad | v3 |
+| mTLS / DPoP | Enterprise-only, Overkill fuer Zielgruppe | Kein Plan |
+| SOC-2-Zertifizierung | Irrelevant fuer Self-Hosted | Kein Plan |
 
 ---
 
