@@ -115,11 +115,7 @@ from app.middleware.tenant_cors import TenantAwareCORSMiddleware
 app.add_middleware(LocaleMiddleware)
 app.add_middleware(RateLimitMiddleware)
 
-# S3: Tenant-aware CORS (replaces FastAPI CORSMiddleware)
-# Origins loaded per tenant from DB. Default: deny all.
-app = TenantAwareCORSMiddleware(app)
-
-# Outer layers (executed first on request)
+# Outer layers — must be added before CORS wrapping (LIFO: last added = first executed)
 # S1: API-specific security headers (CSP, Permissions-Policy, etc.)
 app.add_middleware(SecurityHeadersMiddleware)
 # S2: HTTPS fallback — Caddy handles primary HTTPS enforcement
@@ -203,3 +199,11 @@ app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads"
 @app.get("/health")
 async def health():
     return {"status": "ok", "version": "0.1.0"}
+
+
+# ---------------------------------------------------------------------------
+# S3: Tenant-aware CORS — raw ASGI wrapper (outermost layer)
+# Must be LAST because it replaces the FastAPI app object.
+# Origins loaded per tenant from DB. Default: deny all.
+# ---------------------------------------------------------------------------
+app = TenantAwareCORSMiddleware(app)

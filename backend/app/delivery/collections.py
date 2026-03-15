@@ -240,7 +240,6 @@ async def get_collection(
     locale_params: LocaleParams = Depends(),
     tenant_id: UUID = Depends(get_delivery_tenant_id),
     db: AsyncSession = Depends(get_db),
-    tenant: CmsTenant | None = None,
 ):
     # API-Key auth: override tenant_id and check scopes
     api_key_auth = await _resolve_api_key_auth(request, db)
@@ -329,11 +328,14 @@ async def get_collection(
 
     # i18n: resolve locale if requested
     locale_param = getattr(locale_params, "locale", None) if locale_params else None
-    use_i18n = bool(locale_param and tenant)
+    tenant: CmsTenant | None = None
+    use_i18n = False
     resolved_locale = ""
     chain: list[str] = []
     translatable_data_fields: set[str] = set()
-    if use_i18n and tenant:
+    if locale_param:
+        tenant = await get_delivery_tenant(request, db)
+        use_i18n = True
         resolved_locale, chain = resolve_locale(
             locale_param, tenant.locales or [], tenant.default_language, tenant.fallback_chain or {},
         )
@@ -411,5 +413,5 @@ async def get_collection_plural(
     """Plural URL alias: /content/collections/{key} -> delegates to get_collection."""
     return await get_collection(
         key, request, pagination, sorting, cursor_params, search,
-        locale_params=locale_params, tenant_id=tenant.id, db=db, tenant=tenant,
+        locale_params=locale_params, tenant_id=tenant.id, db=db,
     )

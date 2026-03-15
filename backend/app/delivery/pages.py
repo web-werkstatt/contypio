@@ -115,7 +115,7 @@ async def _fetch_single_page(
     if needs_sections and page.collection_key:
         try:
             from app.delivery.collections import get_collection
-            collection_resp = await get_collection(page.collection_key, request, tenant_id=tenant_id, db=db, tenant=tenant)
+            collection_resp = await get_collection(page.collection_key, request, tenant_id=tenant_id, db=db)
             import json
             response["collection"] = json.loads(collection_resp.body.decode())
         except Exception:
