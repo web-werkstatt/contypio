@@ -5,8 +5,10 @@ Sliding-window counter per client. Limits vary by key type:
   - live (API key):   500 req/min
   - build (API key):  2000 req/min
 
+Resolves key_type from DB via lightweight hash lookup.
 Adds standard X-RateLimit-* headers to responses.
 """
+import hashlib
 import time
 from collections import defaultdict
 
@@ -23,19 +25,54 @@ RATE_TIERS: dict[str, tuple[int, int]] = {
 # In-memory store: client_key -> list of timestamps
 _requests: dict[str, list[float]] = defaultdict(list)
 
+# In-memory cache: key_hash -> key_type (avoids DB lookup on every request)
+_key_type_cache: dict[str, tuple[str, float]] = {}
+_KEY_TYPE_CACHE_TTL = 300  # 5 minutes
 
-def _client_key(request: Request) -> tuple[str, str]:
+
+async def _resolve_key_type(raw_key: str) -> str:
+    """Resolve key_type from DB by hashing the raw key. Cached for 5 minutes."""
+    key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+
+    # Check cache
+    cached = _key_type_cache.get(key_hash)
+    if cached and time.time() - cached[1] < _KEY_TYPE_CACHE_TTL:
+        return cached[0]
+
+    # DB lookup
+    try:
+        from sqlalchemy import select
+        from app.auth.api_key import CmsApiKey
+        from app.core.database import async_session
+
+        async with async_session() as db:
+            result = await db.execute(
+                select(CmsApiKey.key_type).where(
+                    CmsApiKey.key_hash == key_hash,
+                    CmsApiKey.active.is_(True),
+                )
+            )
+            row = result.scalar_one_or_none()
+            key_type = row or "live"
+    except Exception:
+        key_type = "live"
+
+    _key_type_cache[key_hash] = (key_type, time.time())
+    return key_type
+
+
+async def _client_key(request: Request) -> tuple[str, str]:
     """Identify client and determine rate tier.
 
     Returns (client_key, tier).
-    Tier is determined by X-Key-Type header (set by auth middleware)
-    or defaults to "public".
+    For API keys: resolves key_type from DB (cached).
+    For public requests: uses client IP.
     """
     auth = request.headers.get("authorization", "")
     if auth.startswith("Bearer cms_"):
-        prefix = auth[7:20]  # Key prefix as identifier
-        # Key type is resolved from DB during auth — we store it on request state
-        tier = getattr(request.state, "rate_tier", "live")
+        raw_key = auth[7:]
+        prefix = raw_key[:12]
+        tier = await _resolve_key_type(raw_key)
         return f"key:{prefix}", tier
     forwarded = request.headers.get("x-forwarded-for", "")
     ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
@@ -60,7 +97,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         now = time.time()
-        key, tier = _client_key(request)
+        key, tier = await _client_key(request)
         limit, window = RATE_TIERS.get(tier, RATE_TIERS["public"])
         timestamps = _cleanup(key, now, window)
         remaining = max(0, limit - len(timestamps))

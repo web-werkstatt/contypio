@@ -77,7 +77,52 @@ async def lifespan(app: FastAPI):
         if tenant:
             await seed_field_type_presets(tenant.id, session)
     logger.info("CMS API started")
+
+    # S10: Background task for audit log cleanup + IP anonymization
+    import asyncio
+    async def _audit_cleanup_loop():
+        from app.middleware.audit_log import cleanup_old_audit_logs, anonymize_old_ips
+        while True:
+            await asyncio.sleep(3600)  # Run every hour
+            try:
+                anonymized = await anonymize_old_ips(days=7)
+                deleted = await cleanup_old_audit_logs(retention_days=90)
+                if anonymized or deleted:
+                    logger.info("Audit cleanup: %d IPs anonymized, %d old logs deleted", anonymized, deleted)
+            except Exception as e:
+                logger.error("Audit cleanup failed: %s", e)
+
+    cleanup_task = asyncio.create_task(_audit_cleanup_loop())
+
+    # S6: Cleanup expired rotated API keys
+    async def _rotation_cleanup_loop():
+        from datetime import datetime, timezone as tz
+        from sqlalchemy import update
+        from app.auth.api_key import CmsApiKey
+        while True:
+            await asyncio.sleep(3600)
+            try:
+                async with async_session() as db:
+                    result = await db.execute(
+                        update(CmsApiKey)
+                        .where(
+                            CmsApiKey.rotated_key_hash.isnot(None),
+                            CmsApiKey.rotation_expires_at < datetime.now(tz.utc),
+                        )
+                        .values(rotated_key_hash=None, rotation_expires_at=None)
+                    )
+                    await db.commit()
+                    if result.rowcount:
+                        logger.info("Rotation cleanup: %d expired rotated keys cleared", result.rowcount)
+            except Exception as e:
+                logger.error("Rotation cleanup failed: %s", e)
+
+    rotation_task = asyncio.create_task(_rotation_cleanup_loop())
+
     yield
+
+    cleanup_task.cancel()
+    rotation_task.cancel()
     await engine.dispose()
 
 

@@ -220,11 +220,13 @@ def _sign_v2(secret: str, timestamp: str, body: str) -> str:
 def _build_headers(event: str, body: str, secret: str) -> dict[str, str]:
     """Build webhook headers with v2 signature (timestamp-based replay protection)."""
     ts = str(int(time.time()))
+    delivery_id = str(uuid.uuid4())
     sig = _sign_v2(secret, ts, body)
     return {
         "Content-Type": "application/json",
         "X-Contypio-Event": event,
         "X-Contypio-Signature": f"v2={sig}",
         "X-Contypio-Timestamp": ts,
+        "X-Contypio-Delivery-ID": delivery_id,
         "User-Agent": "Contypio-Webhooks/2.0",
     }
