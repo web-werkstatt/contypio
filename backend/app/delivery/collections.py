@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, Field
 from sqlalchemy import String, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -164,11 +165,12 @@ def _get_sort_column(sort_field: str):
 
 async def _resolve_api_key_auth(
     request: Request, db: AsyncSession,
-) -> tuple[UUID, list[str]] | None:
+) -> tuple[UUID, list[str], str] | None:
     """Check for Bearer API key in Authorization header.
 
-    Returns (tenant_id, scopes) if valid, None if no API key auth present.
+    Returns (tenant_id, scopes, key_type) if valid, None if no API key auth present.
     Raises HTTPException on invalid/expired/inactive keys.
+    Supports rotated keys during grace period (S6).
     """
     auth = request.headers.get("authorization", "")
     if not auth.startswith("Bearer cms_"):
@@ -177,23 +179,35 @@ async def _resolve_api_key_auth(
     raw_key = auth[7:]  # Strip "Bearer "
     key_hash = hash_api_key(raw_key)
 
+    # Primary lookup
     result = await db.execute(
         select(CmsApiKey).where(CmsApiKey.key_hash == key_hash)
     )
     api_key = result.scalar_one_or_none()
 
+    # S6: Fallback to rotated key (grace period)
     if not api_key:
-        raise HTTPException(status_code=401, detail="Ungültiger API-Schlüssel")
+        result = await db.execute(
+            select(CmsApiKey).where(CmsApiKey.rotated_key_hash == key_hash)
+        )
+        api_key = result.scalar_one_or_none()
+        if api_key:
+            # Check if grace period is still valid
+            if api_key.rotation_expires_at and api_key.rotation_expires_at < datetime.now(timezone.utc):
+                raise HTTPException(status_code=401, detail="Rotated API key expired. Use the new key.")
+
+    if not api_key:
+        raise HTTPException(status_code=401, detail="Invalid API key")
     if not api_key.active:
-        raise HTTPException(status_code=401, detail="API-Schlüssel deaktiviert")
+        raise HTTPException(status_code=401, detail="API key disabled")
     if api_key.expires_at and api_key.expires_at < datetime.now(timezone.utc):
-        raise HTTPException(status_code=401, detail="API-Schlüssel abgelaufen")
+        raise HTTPException(status_code=401, detail="API key expired")
 
     # Update last_used_at
     api_key.last_used_at = datetime.now(timezone.utc)
     await db.commit()
 
-    return api_key.tenant_id, api_key.scopes
+    return api_key.tenant_id, api_key.scopes, api_key.key_type or "live"
 
 
 def _apply_filters(base_filter: list, filters: FilterParams) -> list:
@@ -244,7 +258,7 @@ async def get_collection(
     # API-Key auth: override tenant_id and check scopes
     api_key_auth = await _resolve_api_key_auth(request, db)
     if api_key_auth:
-        tenant_id, scopes = api_key_auth
+        tenant_id, scopes, _key_type = api_key_auth
         if "*" not in scopes and key not in scopes:
             raise HTTPException(status_code=403, detail=f"API-Schlüssel hat keinen Zugriff auf '{key}'")
 
@@ -415,3 +429,121 @@ async def get_collection_plural(
         key, request, pagination, sorting, cursor_params, search,
         locale_params=locale_params, tenant_id=tenant.id, db=db,
     )
+
+
+# ---------------------------------------------------------------------------
+# Batch endpoint — fetch multiple collection items in a single request
+# ---------------------------------------------------------------------------
+
+class BatchCollectionRequest(BaseModel):
+    ids: list[int] | None = Field(default=None, max_length=100, description="Item IDs to fetch (max 100)")
+    slugs: list[str] | None = Field(default=None, max_length=100, description="Item slugs to fetch (max 100)")
+    fields: str | None = Field(default=None, description="Comma-separated sparse fields")
+    locale: str | None = Field(default=None, description="BCP 47 locale")
+
+
+@collections_plural_router.post("/{key}/batch", summary="Batch fetch collection items", description="Fetch multiple items by ID or slug. Max 100. Exactly one of ids or slugs must be provided.")
+async def batch_collection_items(
+    key: str,
+    body: BatchCollectionRequest,
+    request: Request,
+    tenant: CmsTenant = Depends(get_delivery_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    # Validate: exactly one of ids or slugs
+    has_ids = body.ids is not None and len(body.ids) > 0
+    has_slugs = body.slugs is not None and len(body.slugs) > 0
+    if has_ids == has_slugs:
+        raise HTTPException(status_code=400, detail="Exactly one of 'ids' or 'slugs' must be provided")
+
+    tenant_id = tenant.id
+
+    # Load schema for media/relation resolution
+    schema_result = await db.execute(
+        select(CmsCollectionSchema).where(
+            CmsCollectionSchema.tenant_id == tenant_id,
+            CmsCollectionSchema.collection_key == key,
+        )
+    )
+    schema = schema_result.scalar_one_or_none()
+    if not schema:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    # Query items
+    base_filter = [
+        CmsCollection.tenant_id == tenant_id,
+        CmsCollection.collection_key == key,
+        CmsCollection.status == "published",
+    ]
+    if has_ids:
+        ids_list = body.ids or []
+        base_filter.append(CmsCollection.id.in_(ids_list))
+        requested_keys = [str(i) for i in ids_list]
+    else:
+        slugs_list = body.slugs or []
+        base_filter.append(CmsCollection.slug.in_(slugs_list))
+        requested_keys = list(slugs_list)
+
+    result = await db.execute(select(CmsCollection).where(*base_filter))
+    db_items = list(result.scalars().all())
+    schema_fields = schema.fields or []
+
+    # Build lookup for missing detection
+    if has_ids:
+        found_keys = {str(i.id) for i in db_items}
+    else:
+        found_keys = {i.slug for i in db_items if i.slug}
+
+    missing = [k for k in requested_keys if k not in found_keys]
+
+    # i18n
+    locale_param = body.locale
+    use_i18n = False
+    resolved_locale = ""
+    chain: list[str] = []
+    translatable_data_fields: set[str] = set()
+    if locale_param:
+        use_i18n = True
+        resolved_locale, chain = resolve_locale(
+            locale_param, tenant.locales or [], tenant.default_language, tenant.fallback_chain or {},
+        )
+        translatable_data_fields = get_translatable_data_fields(schema_fields)
+
+    # Resolve items
+    items: list[dict] = []
+    for i in db_items:
+        data = await _resolve_media_ids(i.data or {}, schema_fields, tenant_id, db)
+        data = await _resolve_relation_ids(data, schema_fields, tenant_id, db)
+        item_dict: dict = {
+            "id": i.id,
+            "title": i.title,
+            "slug": i.slug,
+            "data": data,
+            "sort_order": i.sort_order,
+            "image_id": i.image_id,
+        }
+        if use_i18n and (i.translations or {}):
+            fallbacks_used: dict[str, str] = {}
+            for fl in chain:
+                t = (i.translations or {}).get(fl, {}).get("title")
+                if t:
+                    item_dict["title"] = t
+                    if fl != resolved_locale:
+                        fallbacks_used["title"] = fl
+                    break
+            if translatable_data_fields:
+                merged_data, data_fallbacks = merge_collection_data_translation(
+                    data, i.translations or {}, translatable_data_fields, resolved_locale, chain,
+                )
+                item_dict["data"] = merged_data
+                fallbacks_used.update(data_fallbacks)
+            item_dict["_locale"] = build_locale_metadata(locale_param, resolved_locale, fallbacks_used)
+        items.append(item_dict)
+
+    response_data = {
+        "items": items,
+        "requested": len(requested_keys),
+        "found": len(items),
+        "missing": missing,
+    }
+    return cached_json_response(response_data, request, "collection")

@@ -304,14 +304,13 @@ async def batch_pages(
     )
     pages_by_slug: dict[str, CmsPage] = {p.slug: p for p in result.scalars().all()}
 
-    items: dict[str, dict | None] = {}
-    not_found: list[str] = []
+    items: list[dict] = []
+    missing: list[str] = []
 
     for slug in body.slugs:
         page = pages_by_slug.get(slug)
         if not page:
-            items[slug] = None
-            not_found.append(slug)
+            missing.append(slug)
             continue
 
         sections = page.sections or []
@@ -338,12 +337,12 @@ async def batch_pages(
         }
         page_dict = _apply_sparse_fields(page_dict, field_set)
         page_dict = _apply_locale(page_dict, page, body.locale, tenant)
-        items[slug] = page_dict
+        items.append(page_dict)
 
-    resolved_count = len(body.slugs) - len(not_found)
     response_data = {
         "items": items,
-        "resolved": resolved_count,
-        "not_found": not_found,
+        "requested": len(body.slugs),
+        "found": len(items),
+        "missing": missing,
     }
     return cached_json_response(response_data, request, "pages")

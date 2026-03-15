@@ -25,6 +25,8 @@ export type {
   // Batch
   BatchPagesRequest,
   BatchPagesResponse,
+  BatchCollectionRequest,
+  BatchCollectionResponse,
   // Media
   Media,
   MediaSize,

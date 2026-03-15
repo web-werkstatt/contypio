@@ -3,8 +3,9 @@ import type {
   CollectionItem,
   ListCollectionParams,
   PaginatedResult,
+  BatchCollectionResponse,
 } from "../types.js";
-import { request } from "../fetch.js";
+import { request, postRequest } from "../fetch.js";
 
 export class CollectionsResource {
   constructor(private readonly config: ContypioConfig) {}
@@ -79,6 +80,32 @@ export class CollectionsResource {
    * }
    * ```
    */
+  /**
+   * Fetch multiple items by ID or slug in a single request (max 100).
+   *
+   * @example
+   * ```ts
+   * const byIds = await client.collections.batch("tours", { ids: [1, 2, 3] });
+   * const bySlugs = await client.collections.batch("tours", { slugs: ["paris", "rome"] });
+   * ```
+   */
+  async batch(
+    key: string,
+    params: { ids?: number[]; slugs?: string[]; fields?: string[]; locale?: string },
+  ): Promise<BatchCollectionResponse> {
+    const locale = this._locale(params.locale);
+    return postRequest<BatchCollectionResponse>(
+      this.config,
+      `/content/collections/${encodeURIComponent(key)}/batch`,
+      {
+        ids: params.ids,
+        slugs: params.slugs,
+        fields: params.fields?.join(","),
+        locale,
+      },
+    );
+  }
+
   async *iterate(
     key: string,
     params?: Omit<ListCollectionParams, "offset" | "cursor">,

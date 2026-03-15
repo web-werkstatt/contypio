@@ -78,12 +78,36 @@ export interface BatchPagesRequest {
 }
 
 export interface BatchPagesResponse {
-  /** Map of slug to page (null if not found). */
-  items: Record<string, Page | null>;
-  /** Number of successfully resolved pages. */
-  resolved: number;
+  /** Array of resolved pages. */
+  items: Page[];
+  /** Number of slugs requested. */
+  requested: number;
+  /** Number of pages found. */
+  found: number;
   /** Slugs that were not found. */
-  not_found: string[];
+  missing: string[];
+}
+
+export interface BatchCollectionRequest {
+  /** Item IDs to fetch (max 100). Exactly one of ids or slugs required. */
+  ids?: number[];
+  /** Item slugs to fetch (max 100). Exactly one of ids or slugs required. */
+  slugs?: string[];
+  /** Comma-separated sparse fields. */
+  fields?: string;
+  /** BCP 47 locale. */
+  locale?: string;
+}
+
+export interface BatchCollectionResponse {
+  /** Array of resolved items. */
+  items: CollectionItem[];
+  /** Number of IDs/slugs requested. */
+  requested: number;
+  /** Number of items found. */
+  found: number;
+  /** IDs or slugs that were not found. */
+  missing: string[];
 }
 
 // ---- Media ----------------------------------------------------------------

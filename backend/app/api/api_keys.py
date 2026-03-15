@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.api_key import CmsApiKey, generate_api_key
+from app.auth.api_key import CmsApiKey, generate_api_key, rotate_api_key
 from app.auth.dependencies import get_current_user
 from app.auth.models import CmsUser
 from app.core.database import get_db
@@ -91,3 +91,34 @@ async def toggle_api_key(
     api_key.active = not api_key.active
     await db.commit()
     return {"id": api_key.id, "active": api_key.active}
+
+
+@router.post("/{key_id}/rotate")
+async def rotate_key(
+    key_id: int,
+    grace_hours: int = 24,
+    user: CmsUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Rotate an API key. Old key stays valid during grace period (default 24h)."""
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    result = await db.execute(
+        select(CmsApiKey).where(CmsApiKey.id == key_id, CmsApiKey.tenant_id == user.tenant_id)
+    )
+    api_key = result.scalar_one_or_none()
+    if not api_key:
+        raise HTTPException(status_code=404, detail="API key not found")
+
+    new_raw, _new_hash, new_prefix = rotate_api_key(api_key, grace_hours=grace_hours)
+    await db.commit()
+    await db.refresh(api_key)
+
+    return {
+        "id": api_key.id,
+        "new_key": new_raw,
+        "new_prefix": new_prefix,
+        "grace_hours": grace_hours,
+        "rotation_expires_at": api_key.rotation_expires_at.isoformat() if api_key.rotation_expires_at else None,
+        "message": f"Key rotated. Old key valid for {grace_hours}h.",
+    }

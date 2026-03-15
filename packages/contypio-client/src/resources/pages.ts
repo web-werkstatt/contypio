@@ -90,8 +90,8 @@ export class PagesResource {
    * @example
    * ```ts
    * const result = await client.pages.batch(["home", "about", "blog"]);
-   * const homePage = result.items["home"];      // Page | null
-   * const missing = result.not_found;            // ["blog"]
+   * const pages = result.items;       // Page[]
+   * const missing = result.missing;   // ["blog"]
    * ```
    */
   async batch(
