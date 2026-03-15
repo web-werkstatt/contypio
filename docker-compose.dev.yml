@@ -3,9 +3,8 @@
 # Usage:
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 #
-# Exposes individual service ports for development:
-#   Backend API:  http://localhost:8060 (direct, no nginx)
-#   PostgreSQL:   localhost:7460
+# API + Admin:  http://localhost:3000
+# PostgreSQL:   localhost:7460 (for DB tools)
 
 services:
   postgres:
@@ -13,8 +12,6 @@ services:
       - "7460:5432"
 
   api:
-    ports:
-      - "8060:8060"
     volumes:
       - ./backend/app:/app/app
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8060", "--reload"]

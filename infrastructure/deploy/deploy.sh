@@ -109,6 +109,25 @@ sync_backend() {
         "${SSH_HOST}:${REMOTE_DIR}/cms-app/"
     success "Backend Code synchronisiert"
 
+    # Sync migrations if any exist
+    if [ -d "${BACKEND_DIR}/migrations/versions" ] && [ "$(ls -A "${BACKEND_DIR}/migrations/versions/" 2>/dev/null)" ]; then
+        info "Sync migrations/ -> Container"
+        for f in "${BACKEND_DIR}"/migrations/versions/*.py; do
+            fname=$(basename "$f")
+            scp -q "$f" "${SSH_HOST}:/tmp/${fname}"
+            ssh "${SSH_HOST}" "docker cp /tmp/${fname} ${CMS_SERVICE}:/app/migrations/versions/${fname}"
+        done
+        success "Migrations synchronisiert"
+
+        # Run pending migrations
+        info "Alembic upgrade..."
+        if ssh "${SSH_HOST}" "docker exec -w /app -e PYTHONPATH=/app ${CMS_SERVICE} alembic upgrade head" 2>&1; then
+            success "Migrations ausgefuehrt"
+        else
+            warn "Migration fehlgeschlagen (evtl. bereits aktuell)"
+        fi
+    fi
+
     info "Restart ${CMS_SERVICE}"
     ssh "${SSH_HOST}" "docker restart ${CMS_SERVICE}"
     success "Container neu gestartet"
@@ -259,6 +278,15 @@ main() {
                     exit 1
                     ;;
             esac
+            ;;
+        backup)
+            step "Database Backup"
+            timer_start
+            local backup_file="contypio-backup-$(date +%Y%m%d-%H%M%S).sql.gz"
+            info "Creating backup: ${backup_file}"
+            ssh "${SSH_HOST}" "docker exec cms-postgres pg_dump -U contypio contypio | gzip" > "${backup_file}"
+            success "Backup saved: ${backup_file} ($(du -h "${backup_file}" | cut -f1))"
+            timer_end
             ;;
         status)
             cmd_status

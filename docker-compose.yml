@@ -3,10 +3,11 @@
 # Quick start:
 #   docker compose up -d
 #
-# Admin UI:  http://localhost:3000
-# API:       http://localhost:3000/content/
+# Admin UI + API:  http://localhost:3000
+# API Docs:        http://localhost:3000/docs
+# Delivery API:    http://localhost:3000/content/
 #
-# First run creates admin account from .env credentials.
+# Two containers: postgres + api (serves Admin UI + API from one process).
 
 services:
   postgres:
@@ -26,14 +27,18 @@ services:
       - contypio
 
   api:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     restart: unless-stopped
+    ports:
+      - "${CONTYPIO_PORT:-3000}:8060"
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-contypio}:${POSTGRES_PASSWORD:-contypio}@postgres:5432/${POSTGRES_DB:-contypio}
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
-      CORS_ORIGINS: '["http://localhost:3000"]'
+      CORS_ORIGINS: '["http://localhost:${CONTYPIO_PORT:-3000}"]'
       UPLOAD_DIR: /app/uploads
-      API_ASSET_URL: http://localhost:3000
+      API_ASSET_URL: http://localhost:${CONTYPIO_PORT:-3000}
       DEFAULT_TENANT_SLUG: ${DEFAULT_TENANT_SLUG:-default}
       DEFAULT_TENANT_NAME: ${DEFAULT_TENANT_NAME:-My Website}
       DEFAULT_TENANT_DOMAIN: ${DEFAULT_TENANT_DOMAIN:-localhost}
@@ -46,16 +51,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - contypio
-
-  admin:
-    build: ./frontend
-    restart: unless-stopped
-    ports:
-      - "${CONTYPIO_PORT:-3000}:80"
-    depends_on:
-      - api
     networks:
       - contypio
 

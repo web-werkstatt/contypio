@@ -1,0 +1,44 @@
+# Contypio — Caddy Reverse Proxy Examples
+#
+# Caddy handles HTTPS automatically (Let's Encrypt).
+# Each Contypio instance runs in its own Docker network, no ports exposed.
+#
+# ============================================================
+# Scenario 1: Single Instance
+# ============================================================
+
+cms.example.com {
+    reverse_proxy contypio-api-1:8060
+    header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+}
+
+# ============================================================
+# Scenario 2: Multiple Isolated Instances
+# ============================================================
+#
+# Each instance has its own docker compose project name:
+#   COMPOSE_PROJECT_NAME=client1 docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
+#   COMPOSE_PROJECT_NAME=client2 docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
+#
+# Container names follow the pattern: {project}-api-1
+# All instances must share the same Docker network as Caddy.
+
+cms-alpha.example.com {
+    reverse_proxy client1-api-1:8060
+}
+
+cms-beta.example.com {
+    reverse_proxy client2-api-1:8060
+}
+
+# ============================================================
+# Scenario 3: Multi-Tenant (Single Instance, Multiple Domains)
+# ============================================================
+#
+# One Contypio instance serves multiple tenants.
+# Domain-based tenant resolution (no X-Tenant header needed).
+# Configure tenant domains in the CMS admin.
+
+site-a.com, site-b.com, site-c.com {
+    reverse_proxy contypio-api-1:8060
+}

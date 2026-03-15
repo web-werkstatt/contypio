@@ -3,13 +3,30 @@
 #
 # Usage:
 #   curl -fsSL https://get.contypio.com | bash
-#   # or
-#   bash install.sh
+#   curl -fsSL https://get.contypio.com | bash -s -- --name my-cms --port 3001
+#   bash install.sh --name my-cms --domain cms.example.com
 #
 set -euo pipefail
 
 REPO_URL="https://github.com/contypio/contypio.git"
 INSTALL_DIR="contypio"
+INSTANCE_NAME=""
+CUSTOM_PORT=""
+CUSTOM_DOMAIN=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --name)    INSTANCE_NAME="$2"; shift 2 ;;
+        --port)    CUSTOM_PORT="$2"; shift 2 ;;
+        --domain)  CUSTOM_DOMAIN="$2"; shift 2 ;;
+        *)         shift ;;
+    esac
+done
+
+if [ -n "$INSTANCE_NAME" ]; then
+    INSTALL_DIR="contypio-${INSTANCE_NAME}"
+fi
 
 # --- Colors ---------------------------------------------------------------
 RED='\033[0;31m'
@@ -121,8 +138,14 @@ DEFAULT_TENANT_SLUG=default
 DEFAULT_TENANT_NAME=My Website
 DEFAULT_TENANT_DOMAIN=localhost
 
+# Instance
+COMPOSE_PROJECT_NAME=${INSTANCE_NAME:-contypio}
+
 # Port (change if 3000 is taken)
-CONTYPIO_PORT=3000
+CONTYPIO_PORT=${CUSTOM_PORT:-3000}
+
+# Domain (for production behind reverse proxy)
+CONTYPIO_DOMAIN=${CUSTOM_DOMAIN:-localhost}
 
 # Seed demo content on first startup
 SEED_DEMO=true
@@ -135,14 +158,15 @@ echo ""
 # 4. Start
 info "Starting Contypio..."
 cd "$INSTALL_DIR"
-docker_compose up -d --build
+COMPOSE_PROJECT_NAME="${INSTANCE_NAME:-contypio}" docker_compose up -d --build
 cd ..
 echo ""
 
 # 5. Wait for health
+EFFECTIVE_PORT="${CUSTOM_PORT:-3000}"
 info "Waiting for API to be ready..."
 RETRIES=30
-HEALTH_URL="http://localhost:${CONTYPIO_PORT:-3000}/health"
+HEALTH_URL="http://localhost:${EFFECTIVE_PORT}/health"
 for i in $(seq 1 $RETRIES); do
     if curl -sf "$HEALTH_URL" &>/dev/null; then
         ok "API is healthy."
@@ -162,9 +186,9 @@ echo -e "  ${BOLD}==========================================${NC}"
 echo -e "  ${GREEN}${BOLD}  Contypio CMS is running!${NC}"
 echo -e "  ${BOLD}==========================================${NC}"
 echo ""
-echo -e "  Admin UI:   ${BOLD}http://localhost:${CONTYPIO_PORT:-3000}${NC}"
-echo -e "  API Docs:   ${BOLD}http://localhost:${CONTYPIO_PORT:-3000}/docs${NC}"
-echo -e "  Delivery:   ${BOLD}http://localhost:${CONTYPIO_PORT:-3000}/content/${NC}"
+echo -e "  Admin UI:   ${BOLD}http://localhost:${EFFECTIVE_PORT}${NC}"
+echo -e "  API Docs:   ${BOLD}http://localhost:${EFFECTIVE_PORT}/docs${NC}"
+echo -e "  Delivery:   ${BOLD}http://localhost:${EFFECTIVE_PORT}/content/${NC}"
 echo ""
 
 if [ "${SHOW_CREDS:-0}" -eq 1 ]; then

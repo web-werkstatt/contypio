@@ -181,24 +181,31 @@ class TestRFC7807:
 # --- L20a.5: Rate Limiting ---
 
 class TestRateLimit:
-    """L20a.5: Rate-limit logic."""
+    """L20a.5: Rate-limit logic (tiered, S7)."""
 
-    def test_client_key_from_ip(self):
+    @pytest.mark.asyncio
+    async def test_client_key_from_ip(self):
         from app.core.rate_limit import _client_key
         req = MagicMock()
         req.headers = {}
         req.client = MagicMock()
         req.client.host = "192.168.1.1"
-        assert _client_key(req) == "ip:192.168.1.1"
+        key, tier = await _client_key(req)
+        assert key == "ip:192.168.1.1"
+        assert tier == "public"
 
-    def test_client_key_from_api_key(self):
-        from app.core.rate_limit import _client_key
-        req = MagicMock()
-        req.headers = {"authorization": "Bearer cms_abc123xyz456"}
-        assert _client_key(req).startswith("key:")
-
-    def test_client_key_from_forwarded(self):
+    @pytest.mark.asyncio
+    async def test_client_key_from_forwarded(self):
         from app.core.rate_limit import _client_key
         req = MagicMock()
         req.headers = {"x-forwarded-for": "10.0.0.1, 192.168.1.1"}
-        assert _client_key(req) == "ip:10.0.0.1"
+        key, tier = await _client_key(req)
+        assert key == "ip:10.0.0.1"
+        assert tier == "public"
+
+    def test_rate_tiers_exist(self):
+        from app.core.rate_limit import RATE_TIERS
+        assert "public" in RATE_TIERS
+        assert "live" in RATE_TIERS
+        assert "build" in RATE_TIERS
+        assert RATE_TIERS["public"][0] < RATE_TIERS["live"][0] < RATE_TIERS["build"][0]

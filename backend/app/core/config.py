@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     DEFAULT_SITE_TAGLINE: str = ""
     DEFAULT_LANGUAGE: str = "en"
 
+    # Demo seed (creates sample pages/collections on first start)
+    SEED_DEMO: bool = False
+
     # Security
     ENFORCE_HTTPS: bool = False  # True in production, Caddy handles primary HTTPS
 

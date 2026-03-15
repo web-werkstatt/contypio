@@ -43,16 +43,18 @@ Default login: `admin@localhost` / `admin` (change in `.env` before first start)
 ```
 localhost:3000
      |
-   [nginx]
+  [FastAPI]  -->  [PostgreSQL]
    /  |  \
   /   |   \
-UI  /api/  /content/  -->  [FastAPI]  -->  [PostgreSQL]
+UI  /api/  /content/
 ```
+
+Two containers. FastAPI serves Admin UI + API from one process (like Payload/Strapi).
 
 | Component | Tech |
 |---|---|
-| Backend | Python 3.13, FastAPI, SQLAlchemy, PostgreSQL 17 |
-| Frontend | React 19, TypeScript, Tailwind CSS 4, shadcn/ui |
+| Backend + Admin | Python 3.13, FastAPI, SQLAlchemy, PostgreSQL 17 |
+| Admin UI | React 19, TypeScript, Tailwind CSS 4, shadcn/ui |
 | Delivery API | REST + JSON, ETag caching, RFC 7807 errors |
 | SDK | TypeScript, ESM, zero runtime dependencies |
 
@@ -146,13 +148,33 @@ docker compose down -v            # Reset everything
 
 ### Production with Reverse Proxy
 
-Put Caddy/nginx/Traefik in front for HTTPS:
+Put Caddy/Traefik in front for HTTPS:
 
 ```caddyfile
 cms.example.com {
-    reverse_proxy localhost:3000
+    reverse_proxy contypio-api-1:8060
 }
 ```
+
+### Multiple Instances on One Server
+
+```bash
+# Instance 1
+curl -fsSL https://get.contypio.com | bash -s -- --name client1 --port 3001
+# Instance 2
+curl -fsSL https://get.contypio.com | bash -s -- --name client2 --port 3002
+
+# Or behind reverse proxy (no ports, Caddy routes by domain):
+# See infrastructure/Caddyfile.example
+```
+
+### Multi-Tenant (One Instance, Multiple Sites)
+
+Contypio is multi-tenant by default. One installation serves multiple websites.
+Configure tenant domains in the Admin UI. Tenant resolution:
+1. `X-Tenant` header (slug or domain)
+2. `Host` header matched against tenant domain
+3. Default tenant fallback
 
 ## Development
 

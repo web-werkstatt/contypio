@@ -76,6 +76,16 @@ async def lifespan(app: FastAPI):
         tenant = tenant_result.scalar_one_or_none()
         if tenant:
             await seed_field_type_presets(tenant.id, session)
+    # SEED_DEMO: create sample pages/collections/globals on first start
+    if settings.SEED_DEMO:
+        from app.services.seed_demo import seed_demo_content
+        async with async_session() as session:
+            tenant_result = await session.execute(select(CmsTenant).where(CmsTenant.slug == settings.DEFAULT_TENANT_SLUG))
+            tenant = tenant_result.scalar_one_or_none()
+            if tenant:
+                result = await seed_demo_content(tenant.id, session)
+                if result.get("status") == "created":
+                    logger.info("Demo content seeded: %s", result)
     logger.info("CMS API started")
 
     # S10: Background task for audit log cleanup + IP anonymization
@@ -236,13 +246,35 @@ app.include_router(content_templates_router)
 import os
 from pathlib import Path
 
-# Static assets (CSS, JS) - must be mounted BEFORE /uploads
+# Static assets (CSS, JS)
 static_dir = Path(__file__).parent / "static"
 static_dir.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+
+# ---------------------------------------------------------------------------
+# Admin UI — serve React SPA from /app/admin-dist (built frontend)
+# Falls back gracefully if admin-dist doesn't exist (API-only mode).
+# Must be mounted LAST so API routes take priority.
+# ---------------------------------------------------------------------------
+ADMIN_DIR = Path("/app/admin-dist")
+if ADMIN_DIR.is_dir():
+    from fastapi.responses import FileResponse
+
+    # Serve admin static assets (JS, CSS, images)
+    app.mount("/assets", StaticFiles(directory=str(ADMIN_DIR / "assets")), name="admin-assets")
+
+    # SPA catch-all: any non-API path serves index.html
+    @app.get("/{path:path}", include_in_schema=False)
+    async def serve_admin(path: str):
+        # If the file exists in admin-dist, serve it (favicon, etc.)
+        file_path = ADMIN_DIR / path
+        if file_path.is_file() and ".." not in path:
+            return FileResponse(file_path)
+        # Otherwise serve index.html (SPA routing)
+        return FileResponse(ADMIN_DIR / "index.html")
 
 
 @app.get("/health")

@@ -1,0 +1,22 @@
+# Contypio CMS — Production (behind reverse proxy)
+#
+# No ports exposed. Caddy/Traefik/nginx routes by domain.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
+#
+# Multiple instances on one server:
+#   COMPOSE_PROJECT_NAME=client1 docker compose -f ... up -d
+#   COMPOSE_PROJECT_NAME=client2 docker compose -f ... up -d
+
+services:
+  api:
+    ports: !reset []
+    restart: always
+    environment:
+      API_ASSET_URL: https://${CONTYPIO_DOMAIN:-cms.example.com}
+      CORS_ORIGINS: '["https://${CONTYPIO_DOMAIN:-cms.example.com}"]'
+      ENFORCE_HTTPS: "true"
+
+  postgres:
+    restart: always
