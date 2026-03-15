@@ -11,6 +11,11 @@ Dieses Repo enthaelt den **gesamten** Produkt-Code:
 - `packages/contypio-client/` — TypeScript SDK (`@contypio/client`)
 - `starters/astro/` — Astro Starter Template
 
+## Verbindliche Spezifikationen
+
+- `docs/api-roadmap-v1.md` — API-Erweiterungen + Security Hardening (Approved, 2026-03-15)
+- Alle API-/SDK-Aenderungen orientieren sich an diesem Dokument.
+
 ## Session-Start Checklist
 
 1. `next-session.md` lesen (Status, naechste Aufgaben, Deploy-Befehle)
