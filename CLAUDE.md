@@ -13,10 +13,10 @@ Dieses Repo enthaelt den **gesamten** Produkt-Code:
 
 ## Session-Start Checklist
 
-1. `sessions/sprints/` lesen (aktuelle Sprint-Plaene)
-2. `COORDINATION.md` lesen (Sprint-Status + Konventionen)
-3. `FEATURES.md` lesen (Feature-Uebersicht)
-4. Pruefen welche Aufgaben offen sind
+1. `next-session.md` lesen (Status, naechste Aufgaben, Deploy-Befehle)
+2. `sessions/sprints/` lesen (aktuelle Sprint-Plaene)
+3. `COORDINATION.md` lesen (Sprint-Status + Konventionen)
+4. `FEATURES.md` lesen (Feature-Uebersicht)
 
 ## Architektur
 
@@ -68,15 +68,21 @@ Sorting: `?sort=-title`, Filter: `?filter[field][op]=value`, Sparse: `?fields=ti
 
 ### Lokal
 ```bash
+cp backend/.env.example backend/.env
 docker compose up
 ```
 
-### Production (IR-Tours Referenz-Instanz)
+### Production
 ```bash
-# Im proj_irtours Verzeichnis:
-./infrastructure/deploy/deploy-proxmox.sh sync cms          # Backend
-./infrastructure/deploy/deploy-proxmox.sh sync cms-frontend  # Frontend
+./infrastructure/deploy/deploy.sh sync backend     # Python Code (~5s)
+./infrastructure/deploy/deploy.sh sync frontend    # React Build (~30s)
+./infrastructure/deploy/deploy.sh sync all         # Beides
+./infrastructure/deploy/deploy.sh status           # Container-Status
+./infrastructure/deploy/deploy.sh logs backend     # Logs
+./infrastructure/deploy/deploy.sh health           # Health-Check
 ```
+
+**Server:** 176.9.1.186 (pve3) -> Docker-VM 10.10.10.100 (SSH: `irtours-docker`)
 
 **Production URLs:**
 - https://cms.ir-tours.de (Admin UI)

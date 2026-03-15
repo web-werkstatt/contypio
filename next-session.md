@@ -24,31 +24,30 @@
 ### Production (IR-Tours Referenz-Instanz)
 
 **Server:** 176.9.1.186 (pve3) -> Docker-VM 10.10.10.100 (SSH: `irtours-docker`)
-
-**WICHTIG:** Deploy-Scripts liegen aktuell noch in `proj_irtours`. Bis das angepasst ist:
+**Script:** `./infrastructure/deploy/deploy.sh`
 
 ```bash
-# Backend deployen (Python Code rsync + Container Restart)
-cd /mnt/projects/proj_irtours
-./infrastructure/deploy/deploy-proxmox.sh sync cms
+# Backend deployen (Python Code rsync + Container Restart, ~5s)
+./infrastructure/deploy/deploy.sh sync backend
 
-# Frontend deployen (npm build + dist rsync)
-cd /mnt/projects/proj_irtours
-./infrastructure/deploy/deploy-proxmox.sh sync cms-frontend
+# Frontend deployen (npm build + dist rsync, ~30s)
+./infrastructure/deploy/deploy.sh sync frontend
+
+# Beides
+./infrastructure/deploy/deploy.sh sync all
+
+# Status + Logs
+./infrastructure/deploy/deploy.sh status
+./infrastructure/deploy/deploy.sh logs backend
+./infrastructure/deploy/deploy.sh logs frontend
+./infrastructure/deploy/deploy.sh health
 ```
 
 **Was passiert dabei:**
-- `sync cms`: rsync `backend/app/` -> `irtours-docker:/opt/ir-tours/cms-app/`, restart `irtours-cms`
-- `sync cms-frontend`: `npm run build` in `frontend/`, rsync `dist/` -> `irtours-docker:/opt/ir-tours/cms-admin-dist/`, restart `irtours-cms-admin`
+- `sync backend`: rsync `backend/app/` -> `irtours-docker:/opt/ir-tours/cms-app/`, restart `irtours-cms`
+- `sync frontend`: `npm run build`, rsync `frontend/dist/` -> `irtours-docker:/opt/ir-tours/cms-admin-dist/`, restart `irtours-cms-admin`
 
 **Health-Check:** https://cms.ir-tours.de/health
-
-### TODO: Deploy aus proj_contypio ermoeglichen
-
-Das Deploy-Script (`deploy-proxmox.sh`) liest aktuell die Pfade aus `proj_irtours/cms-python/`. Es muss angepasst werden:
-- Option A: Symlink `proj_irtours/cms-python` -> `proj_contypio`
-- Option B: Eigenes Deploy-Script in `proj_contypio/infrastructure/deploy/`
-- Option C: `CMS_DIR` und `CMS_FRONTEND_DIR` in deploy-proxmox.sh auf proj_contypio umbiegen
 
 ### Lokal (Docker Compose)
 
@@ -111,6 +110,9 @@ contypio/
     contypio-client/    TypeScript SDK (noch leer)
   starters/
     astro/              Astro Starter Template (noch leer)
+  infrastructure/
+    deploy/
+      deploy.sh         Production Deploy Script
   docker-compose.yml    Lokale Entwicklung
 ```
 
@@ -121,39 +123,23 @@ contypio/
 ### Code aendern + deployen
 
 1. Code in `proj_contypio` aendern
-2. Testen (lokal oder via Tests):
+2. Testen:
    ```bash
    cd backend && python3 -m pytest tests/ -v
    cd frontend && npm run build
    ```
 3. Deployen:
    ```bash
-   cd /mnt/projects/proj_irtours
-   ./infrastructure/deploy/deploy-proxmox.sh sync cms          # Backend
-   ./infrastructure/deploy/deploy-proxmox.sh sync cms-frontend  # Frontend
+   ./infrastructure/deploy/deploy.sh sync backend     # Backend
+   ./infrastructure/deploy/deploy.sh sync frontend    # Frontend
+   ./infrastructure/deploy/deploy.sh sync all         # Beides
    ```
-4. Health-Check: https://cms.ir-tours.de/health
-5. Commit + Push:
+4. Commit + Push:
    ```bash
-   cd /mnt/projects/proj_contypio
    git add <files>
    git commit -m "feat/fix/docs: Beschreibung"
    git push origin main
    ```
-
-### Wichtig: Zwei Repos synchron halten
-
-Bis das Deploy-Script umgestellt ist, muessen Aenderungen in **beiden** Repos landen:
-- `proj_contypio/` = Primary Source (hier entwickeln)
-- `proj_irtours/cms-python/` = Deploy Source (wird von deploy-proxmox.sh gelesen)
-
-**Sync-Befehl (proj_contypio -> proj_irtours):**
-```bash
-rsync -avz --delete --exclude='node_modules' --exclude='dist' --exclude='.env' --exclude='__pycache__' \
-  /mnt/projects/proj_contypio/backend/ /mnt/projects/proj_irtours/cms-python/backend/
-rsync -avz --delete --exclude='node_modules' --exclude='dist' --exclude='.env' --exclude='__pycache__' \
-  /mnt/projects/proj_contypio/frontend/ /mnt/projects/proj_irtours/cms-python/frontend/
-```
 
 ---
 
@@ -180,45 +166,47 @@ rsync -avz --delete --exclude='node_modules' --exclude='dist' --exclude='.env' -
 
 ---
 
-## Skills (verfuegbar in proj_irtours)
+## Skills
 
-Diese Skills funktionieren im IR-Tours Projekt-Kontext:
+| Skill | Zweck |
+|-------|-------|
+| `/sprint-planner` | Sprint-Plan als .md erstellen (nach Plan-Modus) |
+| `/session-end` | next-session.md aktualisieren, commit+push |
+| `/git-commit-push` | Git Commit + Push auf Gitea |
+| `/server-admin` | Proxmox/Docker Admin, Container-Management |
+| `/docker-health-check` | Container-Diagnose wenn Services down |
+| `/hilfe-topic` | Hilfe-Center Topic erstellen (Markdown) |
+| `/changelog` | Aenderungen dokumentieren |
 
-| Skill | Zweck | Hinweis |
-|-------|-------|---------|
-| `/payload-deploy` | Payload CMS Container deployen | Legacy, nicht fuer Contypio |
-| `/deploy` | Production Deploy | Nutzt deploy-proxmox.sh |
-| `/sprint-planner` | Sprint-Plan als .md erstellen | Nach Plan-Modus |
-| `/session-end` | next-session.md aktualisieren, commit+push | Session-Ende |
-| `/git-commit-push` | Git Commit + Push auf Gitea | Nach Features/Sprints |
-| `/server-admin` | Proxmox/Docker Admin | Container-Management |
-| `/docker-health-check` | Container-Diagnose | Wenn Services down |
-| `/hilfe-topic` | Hilfe-Center Topic erstellen | Markdown in hilfe-center/ |
-| `/changelog` | Aenderungen dokumentieren | Session-Protokoll |
-
-**TODO:** Skills fuer proj_contypio erstellen/anpassen:
-- `/contypio-deploy` (eigenes Deploy-Script)
-- `/contypio-sync` (proj_contypio -> proj_irtours rsync)
+### Deploy-Befehle (Kurzform)
+```bash
+./infrastructure/deploy/deploy.sh sync backend     # Python Code
+./infrastructure/deploy/deploy.sh sync frontend    # React Build
+./infrastructure/deploy/deploy.sh sync all         # Beides
+./infrastructure/deploy/deploy.sh status           # Container-Status
+./infrastructure/deploy/deploy.sh logs backend     # Logs
+./infrastructure/deploy/deploy.sh health           # Health-Check
+```
 
 ---
 
 ## Offene Aufgaben
 
-### Prioritaet 1: Deploy-Workflow anpassen
-- [ ] Deploy aus proj_contypio ermoeglichen (Symlink oder eigenes Script)
-- [ ] Rsync-Sync automatisieren (proj_contypio -> proj_irtours/cms-python)
+### ~~Prioritaet 1: Deploy-Workflow~~ DONE
+- [x] Eigenes Deploy-Script: `infrastructure/deploy/deploy.sh`
+- [x] Unabhaengig von proj_irtours
 
-### Prioritaet 2: IR-Tours Referenzen bereinigen (Rebranding)
+### Prioritaet 1: IR-Tours Referenzen bereinigen (Rebranding)
 - [ ] Frontend: 4 Dateien mit `ir-tours` Referenzen (Beispiel-URLs)
 - [ ] Backend: `travel_api.py` (IR-Tours spezifisch — als Plugin/Integration auslagern)
 - [ ] Hilfe-Center: 10 Dateien mit `ir-tours` Referenzen (Beispiel-URLs in Docs)
 - [ ] Plan: `PLAN_REBRANDING_DOMAIN.md` existiert bereits
 
-### Prioritaet 3: Sprint L20 — Go-Live ir-tours.de auf CMS
+### Prioritaet 2: Sprint L20 — Go-Live ir-tours.de auf CMS
 - Sprint-Plan: `proj_irtours/sessions/sprints/cms-python/SPRINT_L20_GOLIVE.md` (noch erstellen)
 - Voraussetzung: L20a (API Standardisierung) ist DONE
 
-### Prioritaet 4: SDK + Starter (GitHub-Launch)
+### Prioritaet 3: SDK + Starter (GitHub-Launch)
 - Sprint-Plan: `sessions/sprints/SPRINT_CONTYPIO_GITHUB_LAUNCH.md`
 - TypeScript SDK (`packages/contypio-client/`)
 - Astro Starter (`starters/astro/`)
@@ -263,6 +251,7 @@ Diese Skills funktionieren im IR-Tours Projekt-Kontext:
 | `frontend/src/App.tsx` | React Router + Seiten |
 | `frontend/src/lib/api.ts` | API Client (Axios) |
 | `frontend/src/types/cms.ts` | TypeScript Interfaces |
+| `infrastructure/deploy/deploy.sh` | Production Deploy Script |
 | `docker-compose.yml` | Lokale Entwicklung |
 | `FEATURES.md` | Feature-Uebersicht |
 | `COORDINATION.md` | Sprint-Status + Konventionen |
