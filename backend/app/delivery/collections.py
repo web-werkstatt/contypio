@@ -14,6 +14,7 @@ from app.delivery.query_params import CursorParams, FilterParams, PaginationPara
 from app.delivery.tenant_resolver import get_delivery_tenant_id
 from app.models.collection import CmsCollection, CmsCollectionSchema
 from app.models.media import CmsMedia
+from app.validators.filter_validator import FilterValidator
 
 logger = logging.getLogger("cms.delivery")
 
@@ -267,6 +268,9 @@ async def get_collection(
     # Bracket-notation filters: ?filter[field][op]=value
     parsed_filters = FilterParams.from_request(request)
     if parsed_filters.filters:
+        # S4: Validate filters against allowlist (derive from schema field names)
+        schema_field_names = {f["name"] for f in (schema.fields or []) if "name" in f}
+        FilterValidator.validate(parsed_filters.filters, schema_field_names)
         base_filter = _apply_filters(base_filter, parsed_filters)
 
     # Total count

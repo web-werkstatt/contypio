@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     DEFAULT_SITE_TAGLINE: str = ""
     DEFAULT_LANGUAGE: str = "en"
 
+    # Security
+    ENFORCE_HTTPS: bool = False  # True in production, Caddy handles primary HTTPS
+
     # AI (optional, OpenAI-kompatibel)
     AI_ENDPOINT_URL: str = ""
     AI_API_KEY: str = ""

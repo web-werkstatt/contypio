@@ -103,7 +103,13 @@ from app.core.error_handler import register_error_handlers
 register_error_handlers(app)
 
 from app.core.rate_limit import RateLimitMiddleware
+from app.middleware.security_headers import SecurityHeadersMiddleware
+from app.middleware.https_enforcement import HTTPSEnforcementMiddleware
 
+# Middleware stack (LIFO: last added = first executed on request)
+# Order matters for security — see docs/api-roadmap-v1.md
+
+# Inner layers (executed last on request, first on response)
 app.add_middleware(LocaleMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
@@ -114,6 +120,12 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "Accept", "Accept-Language", "X-Tenant"],
     max_age=86400,  # Preflight cache: 24h
 )
+
+# Outer layers (executed first on request)
+# S1: API-specific security headers (CSP, Permissions-Policy, etc.)
+app.add_middleware(SecurityHeadersMiddleware)
+# S2: HTTPS fallback — Caddy handles primary HTTPS enforcement
+app.add_middleware(HTTPSEnforcementMiddleware)
 
 from app.auth.routes import router as auth_router
 from app.api.media_folders import router as media_folders_router
