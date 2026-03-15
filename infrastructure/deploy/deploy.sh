@@ -13,10 +13,16 @@ REMOTE_DIR="/opt/ir-tours"
 PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BACKEND_DIR="${PROJECT_ROOT}/backend"
 FRONTEND_DIR="${PROJECT_ROOT}/frontend"
+LANDING_DIR="${PROJECT_ROOT}/infrastructure/landing"
 CMS_SERVICE="irtours-cms"
 CMS_ADMIN_SERVICE="irtours-cms-admin"
 HEALTH_URL="https://cms.ir-tours.de/health"
 HEALTH_TIMEOUT=30
+
+# Landing page (SaaS Server)
+LANDING_SSH_HOST="docker-vm"
+LANDING_REMOTE_DIR="/opt/webideas24/contypio-launch"
+LANDING_URL="https://headless-cms.webideas24.com/"
 
 # ========================================
 # FARBEN + HILFSFUNKTIONEN
@@ -136,7 +142,29 @@ sync_frontend() {
 }
 
 # ========================================
-# SYNC: BEIDE
+# SYNC: LANDING PAGE (SaaS Server)
+# ========================================
+sync_landing() {
+    step "Quick-Sync: Contypio Landing Page (rsync)"
+    timer_start
+
+    info "Sync landing/ -> ${LANDING_SSH_HOST}:${LANDING_REMOTE_DIR}/"
+    rsync -avz \
+        "${LANDING_DIR}/index.html" \
+        "${LANDING_SSH_HOST}:${LANDING_REMOTE_DIR}/"
+    success "Landing Page synchronisiert"
+    timer_end
+
+    info "Checking ${LANDING_URL}"
+    if curl -sf --max-time 5 "${LANDING_URL}" &>/dev/null; then
+        success "Landing Page erreichbar"
+    else
+        warn "Landing Page nicht erreichbar (evtl. Cache)"
+    fi
+}
+
+# ========================================
+# SYNC: BEIDE (Backend + Frontend)
 # ========================================
 sync_all() {
     sync_backend
@@ -180,6 +208,7 @@ ${BOLD}Usage:${NC}
 ${BOLD}Quick-Sync (rsync, ~5-15s):${NC}
   sync backend      Python Code rsync + Restart
   sync frontend     npm build + dist rsync + Restart
+  sync landing      Landing Page auf SaaS-Server
   sync all          Backend + Frontend
 
 ${BOLD}Monitoring:${NC}
@@ -218,10 +247,11 @@ main() {
             case "${sub}" in
                 backend|api)     sync_backend ;;
                 frontend|admin)  sync_frontend ;;
+                landing)         sync_landing ;;
                 all)             sync_all ;;
                 *)
                     error "Unbekannter sync-Befehl: ${sub}"
-                    echo "  Verfuegbar: backend, frontend, all"
+                    echo "  Verfuegbar: backend, frontend, landing, all"
                     exit 1
                     ;;
             esac
