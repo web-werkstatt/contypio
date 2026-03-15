@@ -233,11 +233,28 @@ Deprecation: true                         (nur bei deprecated Versionen)
 
 ## Implementierungs-Reihenfolge
 
+> **Markt-Kontext:** Contypio wird international angeboten (nicht nur DACH).
+> Content i18n ist daher kein Nice-to-have, sondern Marktzugangs-Voraussetzung.
+> Security ist Grundlage fuer spaetere SOC-2-Faehigkeit (US/UK Enterprise).
+
 ```
-Phase 1 (Wochen 1-3):  Batch-Endpoints
-Phase 2 (Wochen 3-5):  Schema-Endpoint + API-Versionierung
-Phase 3 (Wochen 5-8):  Cursor-Pagination + Depth Control
-Phase 4 (Wochen 8-14): Content Localization (i18n)
+Phase 1 (Wochen 1-2):  Content i18n — Datenmodell + API + SDK
+                        → Blockiert internationalen Marktzugang
+                        → Braucht DB-Schema-Aenderungen, daher frueh
+
+Phase 2 (Wochen 2-4):  Security Sprints 2-4 + Batch-Format-Umbau
+                        → Technische SOC-2-Grundlage
+                        → Batch-Response Array-Format (Breaking Change)
+
+Phase 3 (Wochen 4-6):  Schema-Endpoint + Depth Control
+                        → Grundlage fuer SDK-Codegen + GraphQL (v2)
+
+Phase 4 (Wochen 6-8):  API-Versionierung + Englische Docs
+                        → /api/v1/ Prefix
+                        → Landing Page, Hilfe-Center, API-Ref komplett Englisch
+
+Phase 5 (Wochen 8-10): Astro Starter + Demo Seed
+                        → Proof-of-Concept fuer Entwickler weltweit
 ```
 
 ---
@@ -268,12 +285,14 @@ Phase 4 (Wochen 8-14): Content Localization (i18n)
 
 ---
 
-## SDK v0.2 Scope
+## SDK Version-Mapping
 
 | SDK-Version | API-Features vorausgesetzt | Release-Zeitpunkt |
 |-------------|--------------------------|-------------------|
-| v0.2 | Batch, Cursor, Depth, Schema | Nach API-Phase 1-3 |
-| v0.3 | i18n, API-Versionierung (v1) | Nach API-Phase 4 |
+| v0.2 (aktuell) | Batch, Cursor, Retry | DONE |
+| v0.3 | i18n (locale Parameter), Depth Control | Nach Phase 1+3 |
+| v0.4 | Schema-Codegen, API-Versionierung (v1) | Nach Phase 3+4 |
+| v1.0 | Stabil, alle v1-Features | Nach Phase 5 |
 
 ---
 
@@ -286,14 +305,14 @@ Phase 4 (Wochen 8-14): Content Localization (i18n)
 | RBAC-Ausbau | 5-8 Tage | - | Feld-Level-Rechte, Custom Roles |
 | Draft Preview URLs | 2-3 Tage | - | Oeffentliche Vorschau-Links (`?preview=token`) |
 | Realtime / Subscriptions | 3-5 Tage | - | SSE fuer Dashboard-artige Anwendungen |
+| **SOC-2 Vorbereitung** | Laufend | Security Sprints 1-4 | Technische Grundlage (Audit-Log, Key-Mgmt, Tenant-Isolation) wird in v1 gebaut. Formale Zertifizierung wenn erster Enterprise-Kunde es verlangt. ~50-120k EUR Erstkosten. |
 
 ## Non-Goals (kein konkreter Plan)
 
 | Feature | Warum nicht | Fruehestens |
 |---------|------------|------------|
 | Plugin-System / Marketplace | Zu frueh fuer aktuellen Reifegrad | v3 |
-| mTLS / DPoP | Enterprise-only, Overkill fuer Zielgruppe | Kein Plan |
-| SOC-2-Zertifizierung | Irrelevant fuer Self-Hosted | Kein Plan |
+| mTLS / DPoP | Enterprise-only | v3+ |
 
 ---
 
