@@ -1,0 +1,69 @@
+import type {
+  ContypioConfig,
+  Page,
+  PageListItem,
+  TreeNode,
+  GetPageParams,
+  ListPagesParams,
+  PaginatedResult,
+} from "../types.js";
+import { request } from "../fetch.js";
+
+export class PagesResource {
+  constructor(private readonly config: ContypioConfig) {}
+
+  /**
+   * Get a single published page by slug.
+   *
+   * @example
+   * ```ts
+   * const page = await client.pages.get("homepage");
+   * const lite = await client.pages.get("about", { fields: ["title", "seo"] });
+   * ```
+   */
+  async get(slug: string, params?: GetPageParams): Promise<Page> {
+    const query: Record<string, unknown> = {};
+
+    if (params?.includeCss) {
+      query["include_css"] = "true";
+    }
+    if (params?.fields?.length) {
+      query["fields"] = params.fields;
+    }
+
+    return request<Page>(this.config, `/content/pages/${encodeURIComponent(slug)}`, query);
+  }
+
+  /**
+   * List all published pages (paginated).
+   *
+   * @example
+   * ```ts
+   * const result = await client.pages.list({ limit: 10 });
+   * const listings = await client.pages.list({ pageType: "listing" });
+   * ```
+   */
+  async list(params?: ListPagesParams): Promise<PaginatedResult<PageListItem>> {
+    const query: Record<string, unknown> = {};
+
+    if (params?.limit !== undefined) query["limit"] = params.limit;
+    if (params?.offset !== undefined) query["offset"] = params.offset;
+    if (params?.pageType) query["page_type"] = params.pageType;
+    if (params?.parentId !== undefined) query["parent_id"] = params.parentId;
+    if (params?.fields?.length) query["fields"] = params.fields;
+
+    return request<PaginatedResult<PageListItem>>(this.config, "/content/pages", query);
+  }
+
+  /**
+   * Get the hierarchical page tree (for navigation menus).
+   *
+   * @example
+   * ```ts
+   * const tree = await client.pages.tree();
+   * ```
+   */
+  async tree(): Promise<TreeNode[]> {
+    return request<TreeNode[]>(this.config, "/content/tree");
+  }
+}
