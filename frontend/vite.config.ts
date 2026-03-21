@@ -8,8 +8,8 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          tiptap: ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extension-underline', '@tiptap/extension-link', '@tiptap/extension-placeholder'],
+        manualChunks(id) {
+          if (id.includes('@tiptap/')) return 'tiptap'
         },
       },
     },

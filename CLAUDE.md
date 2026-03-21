@@ -28,8 +28,8 @@ Dieses Repo enthaelt den **gesamten** Produkt-Code:
 | Komponente | Tech | Port (lokal) |
 |---|---|---|
 | Backend API | FastAPI + SQLAlchemy + PostgreSQL | 8060 |
+| PostgreSQL | PostgreSQL 17 (Debian, ICU `und`) | 7460 |
 | Admin Frontend | React 19 + TypeScript + shadcn/ui | 8061 |
-| PostgreSQL | PostgreSQL 17 | 7460 |
 | Hilfe-Center | Flask + Markdown | - |
 | SDK | TypeScript (zero deps) | - |
 | Astro Starter | Astro 4.x + Tailwind | - |

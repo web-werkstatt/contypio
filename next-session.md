@@ -97,6 +97,15 @@ Session 7:  Frontend-Luecken + Tests
 
 Session 8:  Astro Starter + Demo Seed
             → GitHub-Launch-ready
+
+Session N:  Setup-Wizard (#13) — Web-GUI fuer Erstinstallation
+            → Alternative zu .env-Konfiguration fuer Nicht-Techniker
+            → Erst wenn API + Datenmodell stabil sind
+
+Session N:  Webstudio-PoC (#14) — Design-Tool Integration
+            → ir-tours Hero + Card-Liste in Webstudio designen
+            → Minimalen css-to-tailwind Converter-Prototyp bauen (eine Section)
+            → Siehe docs/webstudio-integration.md
 ```
 
 ---
@@ -140,6 +149,8 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up  # Dev
 | #10 | Astro Starter | medium | — | TODO |
 | #11 | GraphQL-Layer | medium | v2 | TODO |
 | #12 | SOC-2 Vorbereitung | medium | v2 | TODO |
+| #13 | Setup-Wizard (Web GUI) | medium | Launch | TODO |
+| #14 | Webstudio-PoC (Design-Tool) | medium | Launch | TODO |
 
 **Erledigt:** 7 von 12 Issues (+ Self-Hosted Install, README, Importer-Rewrite, Astro 6 Upgrade)
 
