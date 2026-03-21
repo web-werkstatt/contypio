@@ -1,59 +1,12 @@
 # Next Session - Contypio CMS
 
-**Stand:** 15.03.2026 (nach Session 5)
-**Letzter Commit:** `b5e864a` feat: Selektiver Section-Import + Apply-Endpoint
+**Stand:** 21.03.2026 (nach Session 6)
+**Letzter Commit:** `97f7e22` chore: Vite 8 Upgrade, PostgreSQL Debian+ICU, Webstudio-Konzept
 **Branch:** main
 **Repo:** https://git.webideas24.com/webideas24/contypio
 **Production (Referenz):** https://cms.ir-tours.de (Admin) + Delivery API
 **Landing Page:** https://headless-cms.webideas24.com/ (auto-generiert)
 **Issues:** https://git.webideas24.com/webideas24/contypio/issues
-
----
-
-## Was in Session 5 gemacht wurde
-
-### Schema-Endpoint (Issue #6 — DONE, deployed)
-- `GET /content/schema` — Alle Collection-Schemas (fuer SDK Codegen)
-- `GET /content/schema/{key}` — Einzelnes Schema
-- Public (kein Auth), Cache: 300s + 600s stale-while-revalidate
-- Neue Datei: `backend/app/delivery/schema.py`
-
-### Depth Control (Issue #7 — DONE, deployed)
-- `?depth=0..5` Parameter auf allen Delivery-Endpoints
-- Default 2 (bisheriges Verhalten, non-breaking)
-- depth=0: keine Media/Relation-Resolution (IDs only)
-- Pages + Collections + Batch-Endpoints
-
-### HTML-Importer Rewrite
-- Multi-Column Layouts erkannt (2-4 Spalten aus Tailwind/CSS Grid)
-- Tailwind responsive Prefixes (`sm:grid-cols-2` etc.)
-- Gallery-Items in Wrappern (team-gallery-item) korrekt als Bilder
-- CTA-Buttons in div-Wrappern erkannt
-- HTML-Kommentare + Lightboxes + aria-hidden entfernt (Noise-Removal)
-- Section-Erkennung: keine false positives bei "section" CSS-Substring
-
-### Selektiver Section-Import + Apply-Endpoint
-- `POST /api/website-import/apply` — Sections auf Page anwenden
-  - `mode: "all"` — Alle Sections ersetzen
-  - `mode: "replace"` + `replace_indices` — Nur bestimmte Sections
-  - `mode: "append"` — Sections anhaengen
-- Frontend: StepPreview mit Section-Checkboxen zum An-/Abwaehlen
-- Import nutzt neuen /apply Endpoint statt PUT /api/pages
-
-### README aktualisiert
-- Security-Tabelle (S1-S12), Batch-API, Single-Container-Architektur
-
-### Astro Frontend Update (IR-Tours Container)
-- Node.js 20 → **22.22.0**
-- Astro 5.17.2 → **6.0.4**
-- Tailwind CSS 3.4 → **4.2.1** (Config via CSS @theme statt JS)
-- @astrojs/tailwind → **@tailwindcss/vite** (natives Vite-Plugin)
-- tailwind.config.mjs entfaellt — alles in global.css @theme
-- Build: 72 Seiten, alle 8 Validierungschecks gruen
-
-### Fixes
-- Admin-Passwort Reset (admin@ir-tours.de)
-- Homepage Section 1: Markdown → HTML + korrektes 2-Spalten Layout
 
 ---
 
@@ -89,13 +42,13 @@
 ## Empfohlene Reihenfolge
 
 ```
-Session 6:  API-Versionierung + Englische Docs
+Session 7:  API-Versionierung + Englische Docs
             → Phase 3 abschliessen
 
-Session 7:  Frontend-Luecken + Tests
+Session 8:  Frontend-Luecken + Tests
             → Audit-Log UI, Key-Rotation UI, Test-Coverage
 
-Session 8:  Astro Starter + Demo Seed
+Session 9:  Astro Starter + Demo Seed
             → GitHub-Launch-ready
 
 Session N:  Setup-Wizard (#13) — Web-GUI fuer Erstinstallation
@@ -152,7 +105,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up  # Dev
 | #13 | Setup-Wizard (Web GUI) | medium | Launch | TODO |
 | #14 | Webstudio-PoC (Design-Tool) | medium | Launch | TODO |
 
-**Erledigt:** 7 von 12 Issues (+ Self-Hosted Install, README, Importer-Rewrite, Astro 6 Upgrade)
+**Erledigt:** 7 von 14 Issues
 
 ---
 
@@ -173,6 +126,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up  # Dev
 | `packages/contypio-client/` | TypeScript SDK v0.3.0 |
 | `docker-compose.yml` | Self-Hosted Setup (Port 3000) |
 | `docs/api-roadmap-v1.md` | Verbindliche Spec |
+| `docs/webstudio-integration.md` | Webstudio-Konzept + PoC Plan |
 
 ## Astro Frontend (IR-Tours Container)
 
