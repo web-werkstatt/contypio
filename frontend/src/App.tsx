@@ -71,10 +71,8 @@ export default function App() {
 
               {/* Settings mit eigener Sub-Navigation */}
               <Route path="settings" element={<SettingsLayout />}>
-                <Route index element={<Navigate to="general" replace />} />
-                <Route path="general" element={<GlobalEditor />} />
+                <Route index element={<Navigate to="navigation" replace />} />
                 <Route path="navigation" element={<GlobalEditor />} />
-                <Route path="social-media" element={<GlobalEditor />} />
                 <Route path="webhooks" element={<WebhooksPage />} />
                 <Route path="api-keys" element={<ApiKeysPage />} />
                 <Route path="import" element={<ImportWizard />} />
@@ -82,7 +80,9 @@ export default function App() {
                 <Route path="modules" element={<ModulesPage />} />
               </Route>
 
-              {/* Legacy-Routen: Redirect zu Settings */}
+              {/* Legacy-Routen: Redirect */}
+              <Route path="settings/general" element={<Navigate to="/collections/site-settings" replace />} />
+              <Route path="settings/social-media" element={<Navigate to="/collections/social-media" replace />} />
               <Route path="globals/:slug" element={<GlobalEditor />} />
               <Route path="webhooks" element={<Navigate to="/settings/webhooks" replace />} />
               <Route path="modules" element={<Navigate to="/settings/modules" replace />} />

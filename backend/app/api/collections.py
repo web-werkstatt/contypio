@@ -240,6 +240,46 @@ async def import_execute(
     return result
 
 
+# ---------------------------------------------------------------------------
+# Singleton Endpoints (Directus-Pattern: single object, no list)
+# ---------------------------------------------------------------------------
+
+@router.get("/{key}/item", response_model=CollectionItemRead)
+async def get_singleton_item(
+    key: str,
+    user: CmsUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    schema = await collection_service.get_schema(key, user.tenant_id, db)
+    if not schema:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    if not schema.singleton:
+        raise HTTPException(status_code=400, detail="Collection is not a singleton")
+    item = await collection_service.get_singleton_item(key, user.tenant_id, db)
+    if not item:
+        raise HTTPException(status_code=404, detail="Singleton item not yet created")
+    return item
+
+
+@router.put("/{key}/item", response_model=CollectionItemRead)
+@router.patch("/{key}/item", response_model=CollectionItemRead)
+async def upsert_singleton_item(
+    key: str,
+    body: CollectionItemUpdate,
+    user: CmsUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    schema = await collection_service.get_schema(key, user.tenant_id, db)
+    if not schema:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    if not schema.singleton:
+        raise HTTPException(status_code=400, detail="Collection is not a singleton")
+    data = body.data if body.data is not None else {}
+    item = await collection_service.upsert_singleton_item(key, user.tenant_id, data, db)
+    await dispatch_event("collection.item_updated", {"id": item.id, "collection": key}, user.tenant_id, db)
+    return item
+
+
 @router.get("/{key}/items")
 async def list_items(
     key: str,
@@ -375,6 +415,10 @@ async def create_item(
     schema = await collection_service.get_schema(key, user.tenant_id, db)
     if not schema:
         raise HTTPException(status_code=404, detail="Collection not found")
+    if schema.singleton:
+        existing = await collection_service.get_singleton_item(key, user.tenant_id, db)
+        if existing:
+            raise HTTPException(status_code=409, detail="Singleton collection already has an item. Use PUT /{key}/item instead.")
     item = await collection_service.create_item(key, user.tenant_id, data, db)
     await dispatch_event("collection.item_created", {"id": item.id, "collection": key}, user.tenant_id, db)
     return item

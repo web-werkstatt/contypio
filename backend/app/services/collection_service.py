@@ -288,6 +288,7 @@ async def create_schema(
         title_field=data.title_field,
         slug_field=data.slug_field,
         sort_field=data.sort_field,
+        singleton=data.singleton,
     )
     db.add(schema)
     await db.flush()
@@ -309,6 +310,48 @@ async def update_schema(
     await db.flush()
     await db.refresh(schema)
     return schema
+
+
+async def get_singleton_item(
+    collection_key: str, tenant_id: uuid_mod.UUID, db: AsyncSession,
+) -> CmsCollection | None:
+    """Get the single item of a singleton collection."""
+    result = await db.execute(
+        select(CmsCollection).where(
+            CmsCollection.tenant_id == tenant_id,
+            CmsCollection.collection_key == collection_key,
+            CmsCollection.deleted_at.is_(None),
+        ).limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
+async def upsert_singleton_item(
+    collection_key: str, tenant_id: uuid_mod.UUID, data: dict, db: AsyncSession,
+) -> CmsCollection:
+    """Create or update the single item of a singleton collection."""
+    item = await get_singleton_item(collection_key, tenant_id, db)
+    if item:
+        item.data = data
+        item.updated_at = datetime.now(timezone.utc)
+        await db.flush()
+        await db.refresh(item)
+        return item
+    schema = await get_schema(collection_key, tenant_id, db)
+    label = schema.label if schema else collection_key
+    item = CmsCollection(
+        tenant_id=tenant_id,
+        collection_key=collection_key,
+        title=label,
+        slug=collection_key,
+        data=data,
+        status="published",
+        sort_order=0,
+    )
+    db.add(item)
+    await db.flush()
+    await db.refresh(item)
+    return item
 
 
 async def delete_schema(collection_key: str, tenant_id: uuid_mod.UUID, db: AsyncSession) -> bool:

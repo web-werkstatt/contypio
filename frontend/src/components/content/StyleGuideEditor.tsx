@@ -32,28 +32,28 @@ export default function StyleGuideEditor({ onClose }: Props) {
   });
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg mx-4 space-y-3" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Style-Guide</h2>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 cursor-pointer"><X size={18} /></button>
+          <button onClick={onClose} className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] cursor-pointer"><X size={18} /></button>
         </div>
-        <p className="text-xs text-gray-500">Definiere Ton, Regeln und verbotene Wörter für die KI-Generierung.</p>
+        <p className="text-xs text-[var(--text-muted)]">Definiere Ton, Regeln und verbotene Wörter für die KI-Generierung.</p>
         <textarea
           value={current}
           onChange={(e) => setText(e.target.value)}
           rows={10}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white font-mono resize-y"
+          className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm bg-white font-mono resize-y"
         />
         <div className="flex justify-between">
           <button onClick={() => setText(DEFAULT_GUIDE)}
-            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 cursor-pointer">
+            className="flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-[var(--text)] cursor-pointer">
             <RotateCcw size={12} /> Zurücksetzen
           </button>
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 cursor-pointer">Abbrechen</button>
+            <button onClick={onClose} className="px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text)] cursor-pointer">Abbrechen</button>
             <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}
-              className="px-5 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 cursor-pointer">
+              className="px-5 py-2 bg-[var(--primary)] text-white text-sm rounded-lg hover:opacity-90 disabled:opacity-50 cursor-pointer">
               {saveMutation.isPending ? 'Speichere...' : 'Speichern'}
             </button>
           </div>

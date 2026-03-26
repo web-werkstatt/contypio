@@ -10,6 +10,54 @@ from app.models.global_config import CmsGlobal
 
 logger = logging.getLogger("cms")
 
+SINGLETON_SCHEMAS = [
+    {
+        "collection_key": "site-settings",
+        "label": "Site Settings",
+        "label_singular": "Site Settings",
+        "icon": "Settings",
+        "singleton": True,
+        "title_field": "site_name",
+        "slug_field": None,
+        "sort_field": "sort_order",
+        "fields": [
+            {"name": "site_name", "type": "text", "label": "Site-Name", "required": True},
+            {"name": "tagline", "type": "text", "label": "Tagline"},
+            {"name": "logo", "type": "media-picker", "label": "Logo"},
+            {"name": "contact_email", "type": "email", "label": "Kontakt E-Mail"},
+            {"name": "contact_phone", "type": "phone", "label": "Telefon"},
+            {"name": "address", "type": "textarea", "label": "Adresse"},
+        ],
+    },
+    {
+        "collection_key": "social-media",
+        "label": "Social Media",
+        "label_singular": "Social Media",
+        "icon": "Share2",
+        "singleton": True,
+        "title_field": "title",
+        "slug_field": None,
+        "sort_field": "sort_order",
+        "fields": [
+            {"name": "instagram", "type": "url", "label": "Instagram"},
+            {"name": "facebook", "type": "url", "label": "Facebook"},
+            {"name": "youtube", "type": "url", "label": "YouTube"},
+            {"name": "tiktok", "type": "url", "label": "TikTok"},
+        ],
+    },
+    {
+        "collection_key": "navigation",
+        "label": "Navigation",
+        "label_singular": "Navigation",
+        "icon": "Menu",
+        "singleton": True,
+        "title_field": "title",
+        "slug_field": None,
+        "sort_field": "sort_order",
+        "fields": [],
+    },
+]
+
 COLLECTION_SCHEMAS = [
     {
         "collection_key": "destinations",
@@ -163,7 +211,70 @@ async def seed_field_type_presets(tenant_id: uuid.UUID, db: AsyncSession) -> Non
     await db.commit()
 
 
+def _build_singleton_seed_data() -> dict[str, dict]:
+    """Default data for singleton collection items."""
+    from app.core.config import settings
+    return {
+        "site-settings": {
+            "site_name": settings.DEFAULT_SITE_NAME,
+            "tagline": settings.DEFAULT_SITE_TAGLINE,
+            "contact_email": settings.DEFAULT_ADMIN_EMAIL,
+            "contact_phone": "",
+            "address": "",
+            "logo": None,
+        },
+        "social-media": {
+            "instagram": "",
+            "facebook": "",
+            "youtube": "",
+            "tiktok": "",
+        },
+        "navigation": {
+            "main_menu": [
+                {"label": "Startseite", "href": "/", "children": []},
+                {"label": "Ueber uns", "href": "/ueber-uns", "children": []},
+                {"label": "Kontakt", "href": "/kontakt", "children": []},
+            ],
+            "footer_links": [
+                {"label": "Impressum", "href": "/impressum"},
+                {"label": "Datenschutz", "href": "/datenschutz"},
+            ],
+        },
+    }
+
+
 async def seed_collections_and_globals(tenant_id: uuid.UUID, db: AsyncSession) -> None:
+    # Seed singleton collection schemas + their single item
+    singleton_data = _build_singleton_seed_data()
+    for schema_data in SINGLETON_SCHEMAS:
+        key = schema_data["collection_key"]
+        result = await db.execute(
+            select(CmsCollectionSchema).where(
+                CmsCollectionSchema.tenant_id == tenant_id,
+                CmsCollectionSchema.collection_key == key,
+            )
+        )
+        if not result.scalar_one_or_none():
+            obj = CmsCollectionSchema(tenant_id=tenant_id, **schema_data)
+            db.add(obj)
+            logger.info("Seeded singleton schema: %s", key)
+
+            # Create the singleton item with default data
+            if key in singleton_data:
+                from app.models.collection import CmsCollection
+                item = CmsCollection(
+                    tenant_id=tenant_id,
+                    collection_key=key,
+                    title=schema_data["label"],
+                    slug=key,
+                    data=singleton_data[key],
+                    status="published",
+                    sort_order=0,
+                )
+                db.add(item)
+                logger.info("Seeded singleton item: %s", key)
+
+    # Seed regular collection schemas
     for schema_data in COLLECTION_SCHEMAS:
         result = await db.execute(
             select(CmsCollectionSchema).where(
@@ -176,6 +287,7 @@ async def seed_collections_and_globals(tenant_id: uuid.UUID, db: AsyncSession) -
             db.add(obj)
             logger.info("Seeded collection schema: %s", schema_data["collection_key"])
 
+    # Legacy globals seed (kept for backwards compatibility during migration)
     for global_data in _build_globals_seed():
         result = await db.execute(
             select(CmsGlobal).where(
@@ -186,6 +298,6 @@ async def seed_collections_and_globals(tenant_id: uuid.UUID, db: AsyncSession) -
         if not result.scalar_one_or_none():
             obj = CmsGlobal(tenant_id=tenant_id, **global_data)
             db.add(obj)
-            logger.info("Seeded global: %s", global_data["slug"])
+            logger.info("Seeded legacy global: %s", global_data["slug"])
 
     await db.commit()

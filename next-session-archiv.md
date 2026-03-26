@@ -4,6 +4,12 @@
 
 ---
 
+## Session 21.03.2026 (Session 6) — Vite 8 Upgrade + Webstudio-Konzept
+
+Letzte Planung vor Session 7. Prioritaeten waren API-Versionierung, Englische Docs, Frontend-Luecken, Tests, Astro Starter.
+
+---
+
 ## Session 2026-03-21 — Infrastruktur-Upgrades + Webstudio-Konzept
 
 ### Was wurde erledigt

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Settings, Sliders, Navigation, Share2, Webhook, Download, Globe, Blocks, Key } from 'lucide-react';
+import { Settings, Navigation, Webhook, Download, Globe, Blocks, Key } from 'lucide-react';
 import api from '@/lib/api';
 
 interface NavGroup {
@@ -36,9 +36,7 @@ export default function SettingsLayout() {
     {
       label: t('settings:general'),
       items: [
-        { label: t('settings:general'), path: '/settings/general', icon: <Sliders size={15} /> },
         { label: t('content:navigation'), path: '/settings/navigation', icon: <Navigation size={15} /> },
-        { label: t('settings:social_media'), path: '/settings/social-media', icon: <Share2 size={15} /> },
       ],
     },
     {

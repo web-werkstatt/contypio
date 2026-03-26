@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TenantMixin
@@ -21,6 +21,7 @@ class CmsCollectionSchema(Base, TenantMixin):
     slug_field: Mapped[str | None] = mapped_column(String(100))
     title_field: Mapped[str] = mapped_column(String(100), default="title")
     sort_field: Mapped[str] = mapped_column(String(100), default="sort_order")
+    singleton: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

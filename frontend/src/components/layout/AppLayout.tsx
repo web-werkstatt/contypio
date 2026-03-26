@@ -198,7 +198,7 @@ export default function AppLayout() {
                 onClick={() => navigate('/collections')}
                 className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${location.pathname.startsWith('/collections') ? 'bg-[var(--primary-light)] text-[var(--primary)]' : 'text-[var(--text-muted)] hover:bg-gray-200/40'}`}
               >
-                <Database size={16} /> {t('common:collections')}
+                <Database size={16} /> {t('common:data', 'Daten')}
               </button>
             )}
             {isModuleActive('content_templates') && (
@@ -223,16 +223,18 @@ export default function AppLayout() {
               <div className="px-1 pb-1">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{t('common:system')}</span>
               </div>
-              <button
-                onClick={() => navigate('/settings')}
-                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
-                  location.pathname.startsWith('/settings')
-                    ? 'bg-[var(--primary-light)] text-[var(--primary)]'
-                    : 'text-[var(--text-muted)] hover:bg-gray-200/40'
-                }`}
-              >
-                <Settings size={16} /> {t('common:settings')}
-              </button>
+              {user?.role === 'admin' && (
+                <button
+                  onClick={() => navigate('/settings')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
+                    location.pathname.startsWith('/settings')
+                      ? 'bg-[var(--primary-light)] text-[var(--primary)]'
+                      : 'text-[var(--text-muted)] hover:bg-gray-200/40'
+                  }`}
+                >
+                  <Settings size={16} /> {t('common:settings')}
+                </button>
+              )}
             </div>
           </div>
         </aside>

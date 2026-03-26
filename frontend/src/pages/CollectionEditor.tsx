@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Plus, Pencil, Trash2, Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, CheckSquare, Upload, Download, GripVertical, FileCode } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, CheckSquare, Upload, Download, GripVertical, FileCode, Settings } from 'lucide-react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import api from '@/lib/api';
 import type { CollectionSchema, CollectionItem, FieldDef } from '@/types/cms';
+import { useAuth } from '@/hooks/useAuth';
 import DynamicForm from '@/components/collections/DynamicForm';
+import SchemaSlideOver from '@/components/collections/SchemaSlideOver';
 
 const PER_PAGE = 25;
 
@@ -85,11 +87,14 @@ function SortableRow({ item, displayFields, selectedIds, isDragEnabled, onToggle
   );
 }
 
-export default function CollectionEditor() {
-  const { key } = useParams<{ key: string }>();
+export default function CollectionEditor({ overrideKey }: { overrideKey?: string } = {}) {
+  const { key: paramKey } = useParams<{ key: string }>();
+  const key = overrideKey || paramKey;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t } = useTranslation(['common', 'content']);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [search, setSearch] = useState('');
   const [editItem, setEditItem] = useState<CollectionItem | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -98,6 +103,7 @@ export default function CollectionEditor() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [schemaOpen, setSchemaOpen] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -259,6 +265,54 @@ export default function CollectionEditor() {
 
   if (!schema) return <div className="p-6 text-sm text-[var(--text-muted)]">{t('common:loading')}</div>;
 
+  // Singleton mode: show form directly instead of list
+  if (schema.singleton) {
+    const singletonItem = itemsData?.items[0] ?? null;
+    return (
+      <div className="p-6 pb-20">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-xl font-bold">{schema.label}</h1>
+            <p className="text-sm text-[var(--text-muted)] mt-1">
+              {schema.label_singular}
+            </p>
+          </div>
+          {isAdmin && (
+            <button
+              onClick={() => setSchemaOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[var(--border)] rounded-md hover:bg-gray-50"
+              title="Felder verwalten"
+            >
+              <Settings size={14} /> Felder verwalten
+            </button>
+          )}
+        </div>
+        <div className="bg-white border border-[var(--border)] rounded-xl shadow-sm p-6">
+          <DynamicForm
+            schema={schema}
+            item={singletonItem}
+            collectionKey={key!}
+            onSaved={() => {
+              queryClient.invalidateQueries({ queryKey: ['collectionItems', key] });
+              queryClient.invalidateQueries({ queryKey: ['collections'] });
+            }}
+            onCancel={() => {}}
+            isSingleton
+          />
+        </div>
+        <SchemaSlideOver
+          open={schemaOpen}
+          onClose={() => setSchemaOpen(false)}
+          collectionKey={key!}
+          onSaved={() => {
+            queryClient.invalidateQueries({ queryKey: ['collectionSchema', key] });
+            queryClient.invalidateQueries({ queryKey: ['collectionItems', key] });
+          }}
+        />
+      </div>
+    );
+  }
+
   const displayFields = schema.fields.filter(f => f.list_visible !== false).slice(0, 3);
   const total = itemsData?.total ?? 0;
   const totalPages = Math.ceil(total / PER_PAGE);
@@ -304,6 +358,15 @@ export default function CollectionEditor() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-semibold">{schema.label}</h1>
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <button
+              onClick={() => setSchemaOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[var(--border)] rounded-md hover:bg-gray-50"
+              title="Felder verwalten"
+            >
+              <Settings size={14} /> Felder verwalten
+            </button>
+          )}
           <div className="relative group">
             <button
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[var(--border)] rounded-md hover:bg-gray-50"
@@ -488,6 +551,15 @@ export default function CollectionEditor() {
         </div>
         </>
       )}
+      <SchemaSlideOver
+        open={schemaOpen}
+        onClose={() => setSchemaOpen(false)}
+        collectionKey={key!}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ['collectionSchema', key] });
+          queryClient.invalidateQueries({ queryKey: ['collectionItems', key] });
+        }}
+      />
     </div>
   );
 }

@@ -29,7 +29,7 @@ function CopyBtn({ text }: { text: string }) {
   const [ok, setOk] = useState(false);
   return (
     <button onClick={() => { navigator.clipboard.writeText(text); setOk(true); setTimeout(() => setOk(false), 2000); }}
-      className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 cursor-pointer">
+      className="text-xs px-2 py-1 rounded border border-[var(--border)] hover:bg-gray-50 cursor-pointer">
       {ok ? <><Check size={12} className="inline mr-1" />Kopiert</> : <><Copy size={12} className="inline mr-1" />Kopieren</>}
     </button>
   );
@@ -39,7 +39,7 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
   return (
     <button onClick={onClick}
       className={`px-3 py-1.5 rounded-full text-sm border transition-colors cursor-pointer ${
-        active ? 'bg-blue-600 text-white border-blue-600' : 'bg-transparent text-gray-500 border-gray-300 hover:border-gray-500'
+        active ? 'bg-[var(--primary)] text-white border-[var(--primary)]' : 'bg-transparent text-[var(--text-muted)] border-[var(--border)] hover:border-[var(--text)]'
       }`}>
       {label}
     </button>
@@ -107,7 +107,7 @@ export default function GenerateWizard({ services, channels }: WizardProps) {
 
   if (!aiConfigured) {
     return (
-      <div className="text-center py-12 text-gray-500">
+      <div className="text-center py-12 text-[var(--text-muted)]">
         <Sparkles size={32} className="mx-auto mb-3 opacity-40" />
         <p className="font-medium">KI nicht konfiguriert</p>
         <p className="text-sm mt-1">Bitte AI_ENDPOINT_URL in den Umgebungsvariablen setzen.</p>
@@ -116,6 +116,7 @@ export default function GenerateWizard({ services, channels }: WizardProps) {
   }
 
   const STEPS = ['Briefing', 'Generierung', 'Ergebnis', 'Speichern'];
+  const inputClass = 'w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm bg-white';
 
   return (
     <div className="space-y-4">
@@ -124,14 +125,14 @@ export default function GenerateWizard({ services, channels }: WizardProps) {
         {STEPS.map((s, i) => (
           <div key={s} className="flex items-center gap-1">
             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
-              i <= step ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
+              i <= step ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-[var(--text-muted)]'
             }`}>{i + 1}</div>
-            <span className={`text-xs hidden sm:inline ${i <= step ? 'text-blue-600' : 'text-gray-400'}`}>{s}</span>
-            {i < 3 && <div className={`w-6 h-0.5 ${i < step ? 'bg-blue-600' : 'bg-gray-200'}`} />}
+            <span className={`text-xs hidden sm:inline ${i <= step ? 'text-[var(--primary)]' : 'text-[var(--text-muted)]'}`}>{s}</span>
+            {i < 3 && <div className={`w-6 h-0.5 ${i < step ? 'bg-[var(--primary)]' : 'bg-gray-200'}`} />}
           </div>
         ))}
         <div className="flex-1" />
-        <button onClick={() => setShowStyleGuide(true)} className="p-1.5 text-gray-400 hover:text-gray-600 cursor-pointer" title="Style-Guide">
+        <button onClick={() => setShowStyleGuide(true)} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text)] cursor-pointer" title="Style-Guide">
           <Settings size={16} />
         </button>
       </div>
@@ -140,7 +141,7 @@ export default function GenerateWizard({ services, channels }: WizardProps) {
       {step === 0 && (
         <div className="space-y-4">
           <div>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-widest mb-2">Service</p>
+            <p className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-widest mb-2">Service</p>
             <div className="flex flex-wrap gap-2">
               {Object.entries(services).map(([k, v]) => (
                 <Chip key={k} label={v} active={service === k} onClick={() => setService(k)} />
@@ -148,26 +149,23 @@ export default function GenerateWizard({ services, channels }: WizardProps) {
             </div>
           </div>
           <div>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-widest mb-2">Kanal</p>
+            <p className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-widest mb-2">Kanal</p>
             <div className="flex flex-wrap gap-2">
               {Object.entries(channels).map(([k, v]) => (
                 <Chip key={k} label={v} active={channel === k} onClick={() => setChannel(k)} />
               ))}
             </div>
           </div>
-          <input value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="Keywords (z.B. KMU Website Österreich)"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white" />
-          <input value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Zielgruppe (z.B. Geschäftsführer kleiner Unternehmen)"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white" />
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Zusätzliche Hinweise..."
-            rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white resize-y" />
+          <input value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="Keywords (z.B. KMU Website Österreich)" className={inputClass} />
+          <input value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Zielgruppe (z.B. Geschäftsführer kleiner Unternehmen)" className={inputClass} />
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Zusätzliche Hinweise..." rows={3} className={`${inputClass} resize-y`} />
           <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-[var(--text-muted)] cursor-pointer">
               <input type="checkbox" checked={numVariants > 1} onChange={(e) => setNumVariants(e.target.checked ? 2 : 1)}
                 className="rounded border-gray-300" />
               2 Varianten generieren
             </label>
-            <button onClick={handleGenerate} className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 cursor-pointer">
+            <button onClick={handleGenerate} className="flex items-center gap-2 px-5 py-2 bg-[var(--primary)] text-white text-sm rounded-lg hover:opacity-90 cursor-pointer">
               <Sparkles size={14} /> Text generieren
             </button>
           </div>
@@ -177,9 +175,9 @@ export default function GenerateWizard({ services, channels }: WizardProps) {
       {/* Step 2: Generating */}
       {step === 1 && (
         <div className="text-center py-16">
-          <Loader2 size={32} className="mx-auto mb-4 animate-spin text-blue-600" />
-          <p className="text-sm text-gray-600">Generiere {numVariants > 1 ? `${numVariants} Varianten` : 'Text'}...</p>
-          <p className="text-xs text-gray-400 mt-2">Dein Style-Guide wird angewendet</p>
+          <Loader2 size={32} className="mx-auto mb-4 animate-spin text-[var(--primary)]" />
+          <p className="text-sm text-[var(--text)]">Generiere {numVariants > 1 ? `${numVariants} Varianten` : 'Text'}...</p>
+          <p className="text-xs text-[var(--text-muted)] mt-2">Dein Style-Guide wird angewendet</p>
         </div>
       )}
 
@@ -188,10 +186,10 @@ export default function GenerateWizard({ services, channels }: WizardProps) {
         <div className="space-y-4">
           {generateMutation.data.variants.map((v, i) => (
             <div key={i} className={`border rounded-xl p-4 transition-colors cursor-pointer ${
-              selectedVariant === i ? 'border-blue-500 bg-blue-50/30' : 'border-gray-200 hover:border-gray-400'
+              selectedVariant === i ? 'border-[var(--primary)] bg-[var(--primary-light)]' : 'border-[var(--border)] hover:border-[var(--text-muted)]'
             }`} onClick={() => setSelectedVariant(i)}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-400">
+                <span className="text-xs font-medium text-[var(--text-muted)]">
                   Variante {i + 1} · {v.model} · T={v.temperature}
                 </span>
                 <CopyBtn text={v.content} />
@@ -202,17 +200,17 @@ export default function GenerateWizard({ services, channels }: WizardProps) {
           ))}
           <div className="flex flex-wrap gap-2">
             <button onClick={() => handleRefine('Kürze den Text um 30%')}
-              className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">Kürzer</button>
+              className="px-3 py-1.5 text-xs border border-[var(--border)] rounded-lg hover:bg-gray-50 cursor-pointer">Kürzer</button>
             <button onClick={() => handleRefine('Ersetze allgemeine Aussagen durch konkrete Beispiele und Zahlen')}
-              className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">Konkreter</button>
+              className="px-3 py-1.5 text-xs border border-[var(--border)] rounded-lg hover:bg-gray-50 cursor-pointer">Konkreter</button>
             <button onClick={() => handleRefine('Stärke den Call-to-Action, mache ihn spezifischer')}
-              className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">Mehr CTA</button>
+              className="px-3 py-1.5 text-xs border border-[var(--border)] rounded-lg hover:bg-gray-50 cursor-pointer">Mehr CTA</button>
           </div>
           <div className="flex justify-between">
-            <button onClick={() => setStep(0)} className="flex items-center gap-1 px-4 py-2 text-sm text-gray-500 hover:text-gray-700 cursor-pointer">
+            <button onClick={() => setStep(0)} className="flex items-center gap-1 px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text)] cursor-pointer">
               <ArrowLeft size={14} /> Neues Briefing
             </button>
-            <button onClick={() => setStep(3)} className="flex items-center gap-1 px-5 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 cursor-pointer">
+            <button onClick={() => setStep(3)} className="flex items-center gap-1 px-5 py-2 bg-[var(--primary)] text-white text-sm rounded-lg hover:opacity-90 cursor-pointer">
               Weiter <ArrowRight size={14} />
             </button>
           </div>
@@ -222,7 +220,7 @@ export default function GenerateWizard({ services, channels }: WizardProps) {
       {/* Step 4: Save */}
       {step === 3 && generateMutation.data && (
         <div className="space-y-4">
-          <div className="border border-gray-200 rounded-xl p-4">
+          <div className="border border-[var(--border)] rounded-xl p-4">
             <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed line-clamp-6 mb-2">
               {generateMutation.data.variants[selectedVariant]?.content}
             </pre>
@@ -234,21 +232,20 @@ export default function GenerateWizard({ services, channels }: WizardProps) {
             />
           </div>
           <input value={saveTitle} onChange={(e) => setSaveTitle(e.target.value)}
-            placeholder="Titel für die Vorlage (optional)"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white" />
+            placeholder="Titel für die Vorlage (optional)" className={inputClass} />
           <div className="flex justify-between">
-            <button onClick={() => setStep(2)} className="flex items-center gap-1 px-4 py-2 text-sm text-gray-500 hover:text-gray-700 cursor-pointer">
+            <button onClick={() => setStep(2)} className="flex items-center gap-1 px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text)] cursor-pointer">
               <ArrowLeft size={14} /> Zurück
             </button>
             <div className="flex gap-2">
               <button onClick={() => {
                 navigator.clipboard.writeText(generateMutation.data!.variants[selectedVariant]?.content || '');
                 setStep(0);
-              }} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
+              }} className="px-4 py-2 text-sm border border-[var(--border)] rounded-lg hover:bg-gray-50 cursor-pointer">
                 Direkt verwenden
               </button>
               <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}
-                className="px-5 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 cursor-pointer">
+                className="px-5 py-2 bg-[var(--primary)] text-white text-sm rounded-lg hover:opacity-90 disabled:opacity-50 cursor-pointer">
                 {saveMutation.isPending ? 'Speichere...' : 'Als Vorlage speichern'}
               </button>
             </div>

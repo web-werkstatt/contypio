@@ -37,9 +37,9 @@ const SCORE_LABELS: Record<string, string> = {
 };
 
 function scoreColor(score: number): string {
-  if (score >= 4) return 'bg-green-500';
-  if (score >= 3) return 'bg-yellow-500';
-  return 'bg-red-500';
+  if (score >= 4) return 'bg-[var(--success)]';
+  if (score >= 3) return 'bg-[var(--warning)]';
+  return 'bg-[var(--danger)]';
 }
 
 function scoreBadgeColor(score: number): string {
@@ -52,7 +52,7 @@ export default function QualityScore({ scores, metrics, recommendation, compact 
   const [expanded, setExpanded] = useState(!compact);
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+    <div className="border border-[var(--border)] rounded-lg p-3">
       {/* Overall Score */}
       <button
         onClick={() => setExpanded(!expanded)}
@@ -62,7 +62,7 @@ export default function QualityScore({ scores, metrics, recommendation, compact 
           <span className={`text-2xl font-bold ${scores.overall >= 4 ? 'text-green-600' : scores.overall >= 3 ? 'text-yellow-600' : 'text-red-600'}`}>
             {scores.overall}
           </span>
-          <span className="text-sm text-gray-500">/ 5.0</span>
+          <span className="text-sm text-[var(--text-muted)]">/ 5.0</span>
           {recommendation && (
             <span className={`text-xs px-2 py-0.5 rounded-full ${
               recommendation === 'publish' ? 'bg-green-100 text-green-700' :
@@ -84,8 +84,8 @@ export default function QualityScore({ scores, metrics, recommendation, compact 
             const score = scores[key as keyof Scores] as number;
             return (
               <div key={key} className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 w-28 shrink-0">{label}</span>
-                <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <span className="text-xs text-[var(--text-muted)] w-28 shrink-0">{label}</span>
+                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all ${scoreColor(score)}`}
                     style={{ width: `${(score / 5) * 100}%` }}
@@ -100,21 +100,21 @@ export default function QualityScore({ scores, metrics, recommendation, compact 
 
           {/* Metrics */}
           {metrics && (
-            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div className="mt-3 pt-3 border-t border-[var(--border)] grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
               <div>
-                <span className="text-gray-400">Flesch DE</span>
+                <span className="text-[var(--text-muted)]">Flesch DE</span>
                 <p className="font-medium">{metrics.flesch_reading_ease}</p>
               </div>
               <div>
-                <span className="text-gray-400">Wörter</span>
+                <span className="text-[var(--text-muted)]">Wörter</span>
                 <p className="font-medium">{metrics.word_count}</p>
               </div>
               <div>
-                <span className="text-gray-400">Lesezeit</span>
+                <span className="text-[var(--text-muted)]">Lesezeit</span>
                 <p className="font-medium">{Math.round(metrics.reading_time_seconds)}s</p>
               </div>
               <div>
-                <span className="text-gray-400">Zeichen</span>
+                <span className="text-[var(--text-muted)]">Zeichen</span>
                 <p className="font-medium">{metrics.char_count}</p>
               </div>
             </div>
@@ -123,8 +123,8 @@ export default function QualityScore({ scores, metrics, recommendation, compact 
           {/* Buzzwords found */}
           {metrics && metrics.buzzwords_found.length > 0 && (
             <div className="mt-2 text-xs">
-              <span className="text-red-500">Floskeln: </span>
-              <span className="text-gray-500">{metrics.buzzwords_found.join(', ')}</span>
+              <span className="text-[var(--danger)]">Floskeln: </span>
+              <span className="text-[var(--text-muted)]">{metrics.buzzwords_found.join(', ')}</span>
             </div>
           )}
         </div>

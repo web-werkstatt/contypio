@@ -241,6 +241,7 @@ export interface FieldDef {
   fields?: FieldDef[];
   minItems?: number;
   maxItems?: number;
+  validations?: { rule: string; value: string }[];
 }
 
 export interface FieldTypePreset {
@@ -266,6 +267,7 @@ export interface CollectionSchema {
   slug_field: string | null;
   title_field: string;
   sort_field: string;
+  singleton: boolean;
   item_count: number;
   created_at: string;
 }

@@ -37,6 +37,7 @@ class FieldDef(BaseModel):
     fields: list["FieldDef"] | None = None
     min_items: int | None = None
     max_items: int | None = None
+    validations: list[dict] | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -64,6 +65,7 @@ class CollectionSchemaRead(BaseModel):
     slug_field: str | None = None
     title_field: str = "title"
     sort_field: str = "sort_order"
+    singleton: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -78,6 +80,7 @@ class CollectionSchemaCreate(BaseModel):
     title_field: str = Field(default="title", max_length=100)
     slug_field: str | None = Field(default=None, max_length=100)
     sort_field: str = Field(default="sort_order", max_length=100)
+    singleton: bool = False
 
 
 class CollectionSchemaUpdate(BaseModel):
@@ -88,6 +91,7 @@ class CollectionSchemaUpdate(BaseModel):
     title_field: str | None = Field(default=None, max_length=100)
     slug_field: str | None = Field(default=None, max_length=100)
     sort_field: str | None = Field(default=None, max_length=100)
+    singleton: bool | None = None
 
 
 class CollectionItemCreate(BaseModel):

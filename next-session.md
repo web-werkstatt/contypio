@@ -1,7 +1,7 @@
 # Next Session - Contypio CMS
 
-**Stand:** 21.03.2026 (nach Session 6)
-**Letzter Commit:** `97f7e22` chore: Vite 8 Upgrade, PostgreSQL Debian+ICU, Webstudio-Konzept
+**Stand:** 26.03.2026 (nach Session 7)
+**Letzter Commit:** Session 7 — Singleton Collections + Schema Editor + GUI
 **Branch:** main
 **Repo:** https://git.webideas24.com/webideas24/contypio
 **Production (Referenz):** https://cms.ir-tours.de (Admin) + Delivery API
@@ -10,56 +10,76 @@
 
 ---
 
-## Naechste Session — Prioritaeten
+## Session 7 — Was wurde gemacht
 
-### 1. API-Versionierung (Issue #8, Phase 3) — MEDIUM
-- `/api/v1/content/...` Prefix-Routing
-- Phase 1: Beide Pfade aktiv
-- X-API-Version Header
+### Singleton Collections (Directus-Pattern)
+- `singleton: true` Flag am Collection-Schema (Model + Migration + Pydantic + TypeScript)
+- Backend: `GET/PUT /api/collections/{key}/item` Endpoints, Guard bei create_item
+- Delivery API: `/content/globals/` liest aus Singleton-Collections, Fallback auf Legacy cms_globals
+- Seed: site-settings, social-media, navigation als Singleton-Schemas + Items
+- Frontend: Singleton-Modus zeigt Formular statt Liste
+- **Deployed auf Production, Migration 004_singleton gelaufen**
 
-### 2. Englische Docs (Issue #9, Phase 3) — HIGH
-- API Reference done, README done
-- Hilfe-Center komplett deutsch → Englisch uebersetzen (21 Dateien)
+### Schema Editor Slide-over
+- Neue Komponente `SchemaSlideOver.tsx` (420px Panel von rechts)
+- Feld-Liste mit Sortierung, Detail-Panel mit Label/Key/Typ/Pflicht
+- Typ-spezifische Extras (Optionen, Relations, Min/Max)
+- Validierungsregeln (minLength, maxLength, pattern, custom)
+- `validations` Feld an FieldDef (Backend + Frontend)
 
-### 3. Frontend-Luecken schliessen — MEDIUM
-- Audit-Log Viewer (Backend vorhanden, keine UI)
-- API-Key Rotation UI (Backend-Endpoint da, kein Button)
-- Tenant Locale Config UI
+### Navigation vereinfacht
+- Sidebar: "Daten" statt "Collections", Singletons + Collections zusammen
+- Farbige Icons: Teal fuer Listen, Orange fuer Formulare
+- Type-Badges: "Liste" / "Formular"
+- Settings-Routes fuer general/social-media entfernt (jetzt unter Daten)
+- Settings behaelt nur: Navigation, Webhooks, API-Keys, Import, Module
 
-### 4. Test-Abdeckung nachholen — MEDIUM
-- Security Middleware (S1-S3) — keine Tests
-- API-Key Hashing/Rotation (S5/S6) — keine Tests
-- Batch-Endpoints — keine Tests
-- Webhook-Signatur (S8) — keine Tests
+### Rollen-Check
+- Schema-Button in Sidebar: nur Admin
+- "Felder verwalten" Button: nur Admin
+- "+ Neue Collection": nur Admin
+- Settings-Link: nur Admin
+- Schema Sub-Navigation: nur Admin
 
-### 5. Astro Starter (Issue #10) — MEDIUM
-- Referenz-Frontend mit @contypio/client
-- 6 Block-Komponenten (RichText, Image, Cards, CTA, FAQ, Gallery)
-- SSG-Modus, Tailwind
+### GUI Polish
+- Content Templates (3 Dateien) auf Design-System umgestellt
+- `blue-600` → `var(--primary)`, `dark:` Klassen entfernt
+
+### Dokumentation erstellt
+- `dokumentenaustausch/contypio-tech-stack.md` — vollstaendiger Tech Stack
+- `dokumentenaustausch/contypio-roadmap-2026.md` — 3-Stufen-Roadmap
+- `dokumentenaustausch/contypio-navigationskonzept.html` — GUI-Konzept
+- `sessions/sprints/SPRINT_IRTOURS_GOLIVE.md` — IR-Tours Go-Live Sprint
+- `sessions/sprints/SPRINT_SCHEMA_EDITOR_SLIDEOVER.md` — Schema Editor Sprint
+- Competitive Analysis Memory gespeichert
 
 ---
 
-## Empfohlene Reihenfolge
+## Naechste Session — Prioritaeten
 
-```
-Session 7:  API-Versionierung + Englische Docs
-            → Phase 3 abschliessen
+### 1. IR-Tours Go-Live Content — HIGH
+- site-settings befuellen (Firma, Logo, Adresse, Telefon)
+- social-media befuellen (Instagram, Facebook etc.)
+- Navigation Global befuellen
+- Rechtsseiten anlegen (AGB, Datenschutz, Impressum)
+- Fehlende Seiten: /reiseziele/suedamerika, /br-reisen Hero
 
-Session 8:  Frontend-Luecken + Tests
-            → Audit-Log UI, Key-Rotation UI, Test-Coverage
+### 2. Dashboard verbessern — MEDIUM
+- Schnellzugriff-Widget (Seiten, Daten, Media)
+- "Zuletzt bearbeitet" Liste
+- Statistiken (Seiten, Eintraege, Medien)
+- Onboarding nur beim ersten Login (`user.hasSeenOnboarding`)
 
-Session 9:  Astro Starter + Demo Seed
-            → GitHub-Launch-ready
+### 3. Alten Globals-Code entfernen — LOW
+- Task 1.7: CmsGlobal Model, GlobalEditor, SocialMediaEditor entfernen
+- Erst wenn Singleton-Migration auf Production verifiziert ist
+- Delivery-API Fallback-Logik kann dann auch weg
 
-Session N:  Setup-Wizard (#13) — Web-GUI fuer Erstinstallation
-            → Alternative zu .env-Konfiguration fuer Nicht-Techniker
-            → Erst wenn API + Datenmodell stabil sind
-
-Session N:  Webstudio-PoC (#14) — Design-Tool Integration
-            → ir-tours Hero + Card-Liste in Webstudio designen
-            → Minimalen css-to-tailwind Converter-Prototyp bauen (eine Section)
-            → Siehe docs/webstudio-integration.md
-```
+### 4. Offene Items aus Roadmap
+- Revisions-UI (Stufe 2)
+- RBAC-UI (Stufe 2)
+- Audit-Log UI (Stufe 2, Backend fertig)
+- API Playground (Stufe 1, FastAPI hat es eingebaut)
 
 ---
 
@@ -70,19 +90,10 @@ Session N:  Webstudio-PoC (#14) — Design-Tool Integration
 ./infrastructure/deploy/deploy.sh sync backend     # Python Code (~5s)
 ./infrastructure/deploy/deploy.sh sync frontend    # React Build (~30s)
 ./infrastructure/deploy/deploy.sh sync all         # Beides
-
-# Migrations (nach Model-Aenderungen)
-scp backend/migrations/versions/XXX.py irtours-docker:/tmp/
-ssh irtours-docker "docker cp /tmp/XXX.py irtours-cms:/app/migrations/versions/"
-ssh irtours-docker "docker exec -w /app -e PYTHONPATH=/app irtours-cms alembic upgrade head"
-
-# Self-Hosted
-docker compose up -d                               # Port 3000
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up  # Dev
-
-# Status
-./infrastructure/deploy/deploy.sh health
+./infrastructure/deploy/deploy.sh health           # Health-Check
 ```
+
+**Server:** 176.9.1.186 (pve3) → Docker-VM 10.10.10.100 (SSH: `irtours-docker`)
 
 ---
 
@@ -109,31 +120,12 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up  # Dev
 
 ---
 
-## Wichtige Dateien
+## Wichtige neue Dateien (Session 7)
 
 | Datei | Beschreibung |
 |-------|-------------|
-| `backend/app/main.py` | FastAPI Entry Point + Middleware-Stack |
-| `backend/app/delivery/schema.py` | Schema-Endpoint (Issue #6) |
-| `backend/app/delivery/query_params.py` | DepthParams (Issue #7) |
-| `backend/app/api/website_import.py` | Scrape + Apply Endpoints |
-| `backend/app/importers/html_to_nodes.py` | HTML → Node-Baum (Multi-Column) |
-| `backend/app/importers/nodes_to_blocks.py` | Node-Baum → CMS Sections |
-| `backend/app/core/rate_limit.py` | Tiered Rate Limits (S7) |
-| `backend/app/auth/api_key.py` | Key-Hashing + Rotation (S5/S6) |
-| `backend/app/delivery/` | Delivery Endpoints (Pages, Collections, Globals, Locales, Schema) |
-| `backend/app/middleware/` | Security Headers, HSTS, Tenant CORS, Audit Log |
-| `packages/contypio-client/` | TypeScript SDK v0.3.0 |
-| `docker-compose.yml` | Self-Hosted Setup (Port 3000) |
-| `docs/api-roadmap-v1.md` | Verbindliche Spec |
-| `docs/webstudio-integration.md` | Webstudio-Konzept + PoC Plan |
-
-## Astro Frontend (IR-Tours Container)
-
-| Komponente | Version |
-|---|---|
-| Node.js | 22.22.0 |
-| Astro | 6.0.4 |
-| Tailwind CSS | 4.2.1 (@tailwindcss/vite) |
-| React | 18.3.x (@astrojs/react) |
-| Container | irtours-astro-builder |
+| `backend/migrations/versions/004_collection_singleton.py` | Alembic: singleton Feld |
+| `frontend/src/components/collections/SchemaSlideOver.tsx` | Schema Editor Slide-over Panel |
+| `dokumentenaustausch/contypio-tech-stack.md` | Vollstaendiger Tech Stack |
+| `dokumentenaustausch/contypio-roadmap-2026.md` | 3-Stufen Produkt-Roadmap |
+| `dokumentenaustausch/contypio-navigationskonzept.html` | GUI-Konzeptdokument |
