@@ -5,29 +5,39 @@
 </p>
 
 <p align="center">
-  Hybrid headless CMS for structured content, visual pages, and self-hosted delivery.
+  <strong>Headless CMS for Astro with structured content and visual editing.</strong>
 </p>
 
 <p align="center">
-  <img src="docs/readme/hero-overview.svg" alt="Contypio overview graphic" width="920" />
+  Contypio is a self-hosted, hybrid headless CMS that combines structured collections, globals, and a visual page builder in one platform.
 </p>
 
 <p align="center">
   <img src="docs/readme/screenshots/gui-dashboard.png" alt="Contypio dashboard screenshot" width="920" />
 </p>
 
-## English
+## ✨ Key Features
 
-Contypio combines a schema-driven CMS, page builder, delivery API, and typed client SDK in one stack. It is aimed at teams that want more structure than WordPress, but less platform overhead than a large enterprise CMS.
+- **Hybrid headless CMS**: structured collections and visual pages in one system, without choosing between "pure headless" and "page builder".
+- **Astro-first delivery**: clean `/content/*` endpoints and a typed TypeScript client for Astro and modern frontend stacks.
+- **Visual page builder**: create landing pages and campaigns with reusable blocks and section-based layouts while still outputting structured data.
+- **Globals for site-wide content**: manage navigation, branding, social links, and settings as singletons instead of scattered config files.
+- **Self-hosted and Docker-friendly**: run Contypio on your own infrastructure for client projects, internal platforms, and agency stacks.
+- **Multi-site and multi-tenant ready**: serve multiple properties from one installation and keep content clearly separated.
 
-### Why it is useful
+## 🚀 Why Contypio for Astro?
 
-- Model content with collections and singleton globals.
-- Build landing pages and editorial pages with reusable blocks.
-- Deliver content through `/content/*` endpoints for websites and apps.
-- Run it self-hosted with Docker, PostgreSQL, FastAPI, React, and TypeScript.
+Astro works best with predictable data structures, fast static or hybrid rendering, and low runtime overhead. Contypio is designed to fit that workflow directly:
 
-### Product screenshots
+- model your content once and access it through stable `/content/*` endpoints
+- use collections for repeatable content like blog posts, destinations, team members, or feature lists
+- use globals for navigation, site settings, and social links instead of hard-coded JSON
+- use the visual page builder for editorial pages, campaigns, and landing pages without losing content structure
+- consume everything through a typed TypeScript client and an Astro starter path
+
+Result: your Astro frontend stays fast, type-safe, and maintainable, while editors get a modern UI instead of markdown-only forms.
+
+## 🖼️ Product Screenshots
 
 <p align="center">
   <img src="docs/readme/screenshots/gui-login.png" alt="Contypio login screenshot" width="440" />
@@ -39,7 +49,89 @@ Contypio combines a schema-driven CMS, page builder, delivery API, and typed cli
   <img src="docs/readme/screenshots/gui-page-editor.png" alt="Contypio page editor screenshot" width="440" />
 </p>
 
-### System graphics
+## 🧩 Core Concepts
+
+### Visual Page Builder
+
+Compose pages visually using sections and reusable blocks, with a clear separation between layout and content. Editors can build and iterate on landing pages, campaigns, and content hubs without touching code, while developers still receive structured JSON.
+
+### Collections
+
+Define structured content models for repeatable entities such as:
+
+- blog posts and articles
+- destinations and locations
+- products, plans, and pricing tables
+- team members, case studies, FAQs, and more
+
+Each collection has a schema, validation, and an API endpoint that is easy to consume from Astro.
+
+### Globals
+
+Use globals for singleton content that should exist exactly once:
+
+- site configuration and branding
+- navigation menus and footers
+- default SEO metadata
+- social media profiles and contact details
+
+Globals keep site-wide content out of random config files and in a place where editors can manage it safely.
+
+### Delivery API
+
+Contypio exposes published content through simple REST endpoints for:
+
+- pages
+- collections
+- globals
+- locales / languages
+
+This makes content consumption straightforward for Astro, but also for other frameworks if you mix frontends.
+
+### TypeScript Integration
+
+A dedicated TypeScript client and Astro-oriented integration path provide:
+
+- fully typed responses
+- a clear, discoverable API surface
+- a stronger source of truth for frontend content usage
+
+## 🎯 Best Fit
+
+Contypio is a strong fit for:
+
+- **Astro websites with dynamic editorial content**: blogs, marketing sites, content hubs, and docs-style properties
+- **agencies managing multiple clients**: self-hosted control, no SaaS lock-in, reusable patterns across projects
+- **self-hosted CMS needs**: run on Docker, VPS, or internal infrastructure while keeping data ownership in-house
+- **teams that need both landing pages and structured content**: campaigns and collections live in the same system
+
+## 🧪 Quick Start
+
+```bash
+git clone https://github.com/web-werkstatt/contypio.git
+cd contypio
+cp .env.example .env
+docker compose up -d
+```
+
+Open `http://localhost:3000`.
+
+Then:
+
+- create your first collection, for example `posts` or `destinations`
+- define globals for navigation, site settings, and SEO defaults
+- create a page using the visual builder and a few reusable blocks
+- connect Astro and fetch data from `/content/*` through the TypeScript client
+
+## 🌌 Astro Integration Direction
+
+Contypio is being positioned with Astro as a primary frontend target. Planned public integration includes:
+
+- `packages/contypio-client/` for typed frontend consumption
+- `starters/astro/` as reference implementation
+- `docs/astro-go-live/` for Astro-focused documentation and launch planning
+
+## 🏗️ Architecture
 
 <p align="center">
   <img src="docs/readme/system-architecture.svg" alt="System architecture graphic" width="920" />
@@ -49,142 +141,37 @@ Contypio combines a schema-driven CMS, page builder, delivery API, and typed cli
   <img src="docs/readme/content-flow.svg" alt="Content flow graphic" width="920" />
 </p>
 
-### Advantages
+- API-first backend for content delivery
+- hybrid content model with collections, globals, and visual pages
+- typed frontend integration path
+- Docker-first deployment model
+- multi-site and multi-tenant friendly setup
 
-| Area | Strength |
-|---|---|
-| Product model | Combines structured collections and visual page composition in one product |
-| Hosting | Self-hosted, Docker-first, no separate nginx layer required for local setup |
-| API | Public delivery API for pages, collections, globals, locales, and batch access |
-| Frontend usage | TypeScript SDK package under `packages/contypio-client` |
-| Operations | Multi-tenant foundation, localization, media handling, and admin UI in one repo |
+## ⚖️ Honest Trade-offs
 
-### Trade-offs
+Contypio is under active development and still has trade-offs compared to more established CMS tools:
 
-| Area | Limitation |
-|---|---|
-| Ecosystem | Smaller ecosystem than WordPress, Strapi, or Directus |
-| Astro launch | Astro starter and public reference integration are still planned work |
-| Maturity | Some roadmap items are documented but not yet fully productized |
-| Positioning | Hybrid model is powerful, but needs stronger starter templates and examples for onboarding |
+- the Astro starter path is not yet fully productized
+- the ecosystem is smaller than WordPress, Strapi, or Directus
+- public examples and starter kits still need expansion
+- onboarding is improving, but should become even more Astro-specific
 
-### Quick start
+If you prefer a focused, modern, self-hosted stack over a massive plugin marketplace, Contypio is designed for that use case.
 
-```bash
-cp .env.example .env
-docker compose up -d
-```
+## 🧭 Roadmap & Status
 
-Open `http://localhost:3000`.
+Current focus areas:
 
-### Local development
+- deepening the Astro-first story with docs, starter, and launch material
+- improving the visual page builder for marketing and content teams
+- strengthening multi-site workflows for agencies and internal platforms
 
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up
-```
+## 🔗 Learn More
 
-Important paths:
+- Product page: https://contypio.webideas24.com/
+- Astro planning: `docs/astro-go-live/`
+- TypeScript client: `packages/contypio-client/`
 
-- `backend/` FastAPI app, delivery API, auth, services, migrations
-- `frontend/` React admin UI built with Vite and TypeScript
-- `packages/contypio-client/` TypeScript SDK
-- `docs/astro-go-live/` launch planning, support matrix, issue backlog
+## 📄 License
 
-### Tech stack
-
-| Layer | Stack |
-|---|---|
-| Backend | FastAPI, SQLAlchemy, Alembic, PostgreSQL |
-| Frontend | React 19, TypeScript 5.9, Vite 8, Tailwind 4 |
-| SDK | TypeScript package with typed client access |
-| Infra | Docker Compose, optional reverse proxy for production |
-
-### Best fit
-
-- Agencies running multiple customer websites
-- Teams wanting a self-hosted CMS with structured content and landing pages
-- Projects that need public content APIs and a typed frontend integration path
-
-### Less ideal if
-
-- You need a huge plugin marketplace today
-- You want a fully managed SaaS CMS with zero ops
-- You depend on an already finished Astro starter right now
-
----
-
-## Deutsch
-
-Contypio verbindet schema-getriebenes Content Modeling, Page Builder, Delivery API und ein typisiertes Client-SDK in einem Stack. Das System ist fuer Teams gedacht, die mehr Struktur als bei WordPress wollen, aber weniger Plattformaufwand als bei einem grossen Enterprise-CMS.
-
-### Warum das System interessant ist
-
-- Inhalte ueber Collections und Singleton-Globals modellieren.
-- Landingpages und redaktionelle Seiten mit wiederverwendbaren Blocks bauen.
-- Inhalte ueber `/content/*` an Websites und Apps ausliefern.
-- Self-hosted mit Docker, PostgreSQL, FastAPI, React und TypeScript betreiben.
-
-### Produkt-Screenshots
-
-<p align="center">
-  <img src="docs/readme/screenshots/gui-login.png" alt="Contypio Login Screenshot" width="440" />
-  <img src="docs/readme/screenshots/gui-collections.png" alt="Contypio Collections Screenshot" width="440" />
-</p>
-
-<p align="center">
-  <img src="docs/readme/screenshots/gui-site-settings.png" alt="Contypio Site Settings Screenshot" width="440" />
-  <img src="docs/readme/screenshots/gui-page-editor.png" alt="Contypio Page Editor Screenshot" width="440" />
-</p>
-
-### Vorteile
-
-| Bereich | Vorteil |
-|---|---|
-| Produktansatz | Strukturierte Daten und visuelle Seitenerstellung in einem System |
-| Betrieb | Self-hosted, Docker-first, lokal ohne zusaetzliche nginx-Schicht startbar |
-| API | Oeffentliche Delivery API fuer Seiten, Collections, Globals, Locales und Batch-Endpunkte |
-| Frontend-Anbindung | TypeScript-SDK unter `packages/contypio-client` |
-| Plattform | Multi-Tenancy, Lokalisierung, Media-Handling und Admin-Oberflaeche in einem Repo |
-
-### Nachteile
-
-| Bereich | Nachteil |
-|---|---|
-| Oekosystem | Kleineres Oekosystem als WordPress, Strapi oder Directus |
-| Astro-Positionierung | Astro-Starter und oeffentliche Referenzintegration sind noch offene Arbeitspakete |
-| Reifegrad | Teile der Roadmap sind dokumentiert, aber noch nicht komplett produktisiert |
-| Einstieg | Fuer schnelles Onboarding fehlen noch mehr Starter, Demo-Flows und Referenzprojekte |
-
-### Schnellstart
-
-```bash
-cp .env.example .env
-docker compose up -d
-```
-
-Danach ist das System unter `http://localhost:3000` erreichbar.
-
-### Entwicklung
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up
-```
-
-Wichtige Pfade:
-
-- `backend/` FastAPI-App, Delivery API, Auth, Services, Migrationen
-- `frontend/` React-Admin mit Vite und TypeScript
-- `packages/contypio-client/` TypeScript-SDK
-- `docs/astro-go-live/` Astro-Go-Live-Planung, Support-Matrix und Issue-Backlog
-
-### Geeignet fuer
-
-- Agenturen mit mehreren Kundenprojekten
-- Teams, die strukturierte Inhalte und visuelle Seiten in einem CMS brauchen
-- Projekte mit API-first-Auslieferung und typisiertem Frontend-Consumption-Path
-
-### Weniger geeignet, wenn
-
-- sofort ein grosses Plugin-Oekosystem benoetigt wird
-- ein komplett gemanagtes SaaS-CMS ohne Betriebsaufwand gesucht wird
-- heute schon ein fertig produktisierter Astro-Starter zwingend noetig ist
+Add the final public license information here.
