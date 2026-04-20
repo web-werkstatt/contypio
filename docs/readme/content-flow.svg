@@ -1,0 +1,41 @@
+<svg width="1200" height="560" viewBox="0 0 1200 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="560" rx="28" fill="#081118"/>
+  <rect x="44" y="44" width="1112" height="472" rx="24" fill="#0E1A22"/>
+  <text x="72" y="92" fill="#E6FFFA" font-family="Arial, sans-serif" font-size="34" font-weight="700">Content flow</text>
+  <text x="72" y="124" fill="#89AAA4" font-family="Arial, sans-serif" font-size="18">Model content once, publish it through pages, collections, globals, and typed clients.</text>
+
+  <rect x="88" y="188" width="210" height="176" rx="22" fill="#10232B" stroke="#2DD4BF" stroke-opacity="0.28"/>
+  <rect x="348" y="188" width="210" height="176" rx="22" fill="#10232B" stroke="#7DD3FC" stroke-opacity="0.28"/>
+  <rect x="608" y="188" width="210" height="176" rx="22" fill="#10232B" stroke="#F59E0B" stroke-opacity="0.28"/>
+  <rect x="868" y="188" width="244" height="176" rx="22" fill="#10232B" stroke="#A7F3D0" stroke-opacity="0.28"/>
+
+  <text x="118" y="234" fill="#D1FAE5" font-family="Arial, sans-serif" font-size="28" font-weight="700">Model</text>
+  <text x="118" y="268" fill="#9EC7C3" font-family="Arial, sans-serif" font-size="18">Collections</text>
+  <text x="118" y="296" fill="#9EC7C3" font-family="Arial, sans-serif" font-size="18">Singletons</text>
+  <text x="118" y="324" fill="#9EC7C3" font-family="Arial, sans-serif" font-size="18">Field rules</text>
+
+  <text x="378" y="234" fill="#E0F2FE" font-family="Arial, sans-serif" font-size="28" font-weight="700">Compose</text>
+  <text x="378" y="268" fill="#A9D5F7" font-family="Arial, sans-serif" font-size="18">Pages</text>
+  <text x="378" y="296" fill="#A9D5F7" font-family="Arial, sans-serif" font-size="18">Blocks</text>
+  <text x="378" y="324" fill="#A9D5F7" font-family="Arial, sans-serif" font-size="18">Navigation</text>
+
+  <text x="638" y="234" fill="#FEF3C7" font-family="Arial, sans-serif" font-size="28" font-weight="700">Publish</text>
+  <text x="638" y="268" fill="#E2CA90" font-family="Arial, sans-serif" font-size="18">/content/pages</text>
+  <text x="638" y="296" fill="#E2CA90" font-family="Arial, sans-serif" font-size="18">/content/collections</text>
+  <text x="638" y="324" fill="#E2CA90" font-family="Arial, sans-serif" font-size="18">/content/globals</text>
+
+  <text x="898" y="234" fill="#D1FAE5" font-family="Arial, sans-serif" font-size="28" font-weight="700">Consume</text>
+  <text x="898" y="268" fill="#9EC7C3" font-family="Arial, sans-serif" font-size="18">Astro</text>
+  <text x="898" y="296" fill="#9EC7C3" font-family="Arial, sans-serif" font-size="18">Next.js</text>
+  <text x="898" y="324" fill="#9EC7C3" font-family="Arial, sans-serif" font-size="18">TypeScript SDK</text>
+
+  <path d="M298 276H336" stroke="#2DD4BF" stroke-width="10" stroke-linecap="round"/>
+  <path d="M320 252L352 276L320 300" stroke="#2DD4BF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M558 276H596" stroke="#7DD3FC" stroke-width="10" stroke-linecap="round"/>
+  <path d="M580 252L612 276L580 300" stroke="#7DD3FC" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M818 276H856" stroke="#F59E0B" stroke-width="10" stroke-linecap="round"/>
+  <path d="M840 252L872 276L840 300" stroke="#F59E0B" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="280" y="418" width="640" height="44" rx="22" fill="#132B35"/>
+  <text x="334" y="446" fill="#B9D7D2" font-family="Arial, sans-serif" font-size="20">Localization, multi-tenancy, media handling, and typed delivery stay in one workflow.</text>
+</svg>

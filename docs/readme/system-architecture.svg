@@ -1,0 +1,35 @@
+<svg width="1200" height="560" viewBox="0 0 1200 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="560" rx="28" fill="#071017"/>
+  <rect x="46" y="46" width="1108" height="468" rx="24" fill="#0D1A22"/>
+  <text x="72" y="96" fill="#E6FFFA" font-family="Arial, sans-serif" font-size="34" font-weight="700">System architecture</text>
+  <text x="72" y="128" fill="#86A8A2" font-family="Arial, sans-serif" font-size="18">FastAPI serves the admin UI and content APIs from one application.</text>
+
+  <rect x="82" y="190" width="236" height="198" rx="24" fill="#10232B" stroke="#2DD4BF" stroke-opacity="0.25"/>
+  <text x="112" y="234" fill="#D1FAE5" font-family="Arial, sans-serif" font-size="28" font-weight="700">Editors</text>
+  <text x="112" y="272" fill="#9EC7C3" font-family="Arial, sans-serif" font-size="18">Admin UI</text>
+  <text x="112" y="302" fill="#9EC7C3" font-family="Arial, sans-serif" font-size="18">API consumers</text>
+  <text x="112" y="332" fill="#9EC7C3" font-family="Arial, sans-serif" font-size="18">SDK clients</text>
+
+  <rect x="482" y="154" width="236" height="270" rx="24" fill="#11313A" stroke="#7DD3FC" stroke-opacity="0.32"/>
+  <text x="512" y="200" fill="#E0F2FE" font-family="Arial, sans-serif" font-size="30" font-weight="700">FastAPI</text>
+  <rect x="512" y="224" width="176" height="42" rx="14" fill="#0C1A20"/>
+  <rect x="512" y="280" width="176" height="42" rx="14" fill="#0C1A20"/>
+  <rect x="512" y="336" width="176" height="42" rx="14" fill="#0C1A20"/>
+  <text x="532" y="252" fill="#C9F7FF" font-family="Arial, sans-serif" font-size="18">Admin API</text>
+  <text x="532" y="308" fill="#C9F7FF" font-family="Arial, sans-serif" font-size="18">Delivery API</text>
+  <text x="532" y="364" fill="#C9F7FF" font-family="Arial, sans-serif" font-size="18">Auth + media</text>
+
+  <rect x="882" y="190" width="236" height="198" rx="24" fill="#10232B" stroke="#FDE68A" stroke-opacity="0.25"/>
+  <text x="912" y="234" fill="#FEF3C7" font-family="Arial, sans-serif" font-size="28" font-weight="700">PostgreSQL</text>
+  <text x="912" y="272" fill="#CDBE89" font-family="Arial, sans-serif" font-size="18">Pages</text>
+  <text x="912" y="302" fill="#CDBE89" font-family="Arial, sans-serif" font-size="18">Collections</text>
+  <text x="912" y="332" fill="#CDBE89" font-family="Arial, sans-serif" font-size="18">Globals and tenants</text>
+
+  <path d="M318 289H458" stroke="#2DD4BF" stroke-width="10" stroke-linecap="round"/>
+  <path d="M432 262L470 289L432 316" stroke="#2DD4BF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M718 289H858" stroke="#7DD3FC" stroke-width="10" stroke-linecap="round"/>
+  <path d="M832 262L870 289L832 316" stroke="#7DD3FC" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="404" y="448" width="392" height="36" rx="18" fill="#132B35"/>
+  <text x="440" y="472" fill="#B9D7D2" font-family="Arial, sans-serif" font-size="18">React 19 + TypeScript + Tailwind admin frontend</text>
+</svg>

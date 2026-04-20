@@ -1,307 +1,190 @@
 # Contypio
 
-**Hybrid Headless CMS** — Content Modeling + Page Builder in one system.
+<p align="center">
+  <img src="frontend/public/contypio-logo.svg" alt="Contypio logo" width="220" />
+</p>
 
-Contypio combines flexible data collections (like Strapi/Directus) with a visual page editor (like WordPress) — as a lightweight, self-hosted headless CMS.
+<p align="center">
+  Hybrid headless CMS for structured content, visual pages, and self-hosted delivery.
+</p>
 
-## Quick Start
+<p align="center">
+  <img src="docs/readme/hero-overview.svg" alt="Contypio overview graphic" width="920" />
+</p>
 
-### One command:
+<p align="center">
+  <img src="docs/readme/screenshots/gui-dashboard.png" alt="Contypio dashboard screenshot" width="920" />
+</p>
+
+## English
+
+Contypio combines a schema-driven CMS, page builder, delivery API, and typed client SDK in one stack. It is aimed at teams that want more structure than WordPress, but less platform overhead than a large enterprise CMS.
+
+### Why it is useful
+
+- Model content with collections and singleton globals.
+- Build landing pages and editorial pages with reusable blocks.
+- Deliver content through `/content/*` endpoints for websites and apps.
+- Run it self-hosted with Docker, PostgreSQL, FastAPI, React, and TypeScript.
+
+### Product screenshots
+
+<p align="center">
+  <img src="docs/readme/screenshots/gui-login.png" alt="Contypio login screenshot" width="440" />
+  <img src="docs/readme/screenshots/gui-collections.png" alt="Contypio collections screenshot" width="440" />
+</p>
+
+<p align="center">
+  <img src="docs/readme/screenshots/gui-site-settings.png" alt="Contypio site settings screenshot" width="440" />
+  <img src="docs/readme/screenshots/gui-page-editor.png" alt="Contypio page editor screenshot" width="440" />
+</p>
+
+### System graphics
+
+<p align="center">
+  <img src="docs/readme/system-architecture.svg" alt="System architecture graphic" width="920" />
+</p>
+
+<p align="center">
+  <img src="docs/readme/content-flow.svg" alt="Content flow graphic" width="920" />
+</p>
+
+### Advantages
+
+| Area | Strength |
+|---|---|
+| Product model | Combines structured collections and visual page composition in one product |
+| Hosting | Self-hosted, Docker-first, no separate nginx layer required for local setup |
+| API | Public delivery API for pages, collections, globals, locales, and batch access |
+| Frontend usage | TypeScript SDK package under `packages/contypio-client` |
+| Operations | Multi-tenant foundation, localization, media handling, and admin UI in one repo |
+
+### Trade-offs
+
+| Area | Limitation |
+|---|---|
+| Ecosystem | Smaller ecosystem than WordPress, Strapi, or Directus |
+| Astro launch | Astro starter and public reference integration are still planned work |
+| Maturity | Some roadmap items are documented but not yet fully productized |
+| Positioning | Hybrid model is powerful, but needs stronger starter templates and examples for onboarding |
+
+### Quick start
 
 ```bash
-curl -fsSL https://get.contypio.com | bash
-```
-
-### Or manually:
-
-```bash
-git clone https://github.com/contypio/contypio.git
-cd contypio
-cp .env.example .env    # edit passwords
+cp .env.example .env
 docker compose up -d
 ```
 
-Open **http://localhost:3000** — done.
+Open `http://localhost:3000`.
 
-Default login: `admin@localhost` / `admin` (change in `.env` before first start).
-
-## What You Get
-
-| Feature | Description |
-|---|---|
-| **Page Builder** | Visual section editor, 15+ block types, drag & drop, live preview |
-| **Collections** | Dynamic data schemas with 16 field types — no code needed |
-| **Globals** | Site settings, navigation, social media — managed centrally |
-| **Delivery API** | REST API with filtering, sorting, pagination, sparse fields, batch |
-| **Media Library** | Drag & drop upload, auto WebP conversion, 3 thumbnail sizes |
-| **Multi-Tenant** | Isolated tenants per domain or `X-Tenant` header |
-| **i18n** | Field-level localization with fallback chains (BCP 47) |
-| **TypeScript SDK** | `@contypio/client` — zero deps, native fetch, full types |
-| **Security** | OWASP API Top 10 hardened, tiered rate limits, audit trail |
-
-## Architecture
-
-```
-localhost:3000
-     |
-  [FastAPI]  ──>  [PostgreSQL]
-   /  |  \
-  /   |   \
- UI  /api/ /content/
-```
-
-Two containers. FastAPI serves Admin UI + API from one process (like Payload/Strapi).
-No nginx required.
-
-| Component | Tech |
-|---|---|
-| Backend + Admin | Python 3.13, FastAPI, SQLAlchemy, PostgreSQL 17 |
-| Admin UI | React 19, TypeScript, Tailwind CSS 4, shadcn/ui |
-| Delivery API | REST + JSON, ETag caching, RFC 7807 errors |
-| SDK | TypeScript, ESM, zero runtime dependencies |
-
-## Delivery API
+### Local development
 
 ```bash
-# Pages
-GET /content/pages/{slug}              # Single page (sections resolved)
-GET /content/pages                     # Paginated list
-GET /content/pages/{slug}?locale=de    # Localized content
-GET /content/tree                      # Hierarchical page tree
-POST /content/pages/batch              # Batch fetch (max 50)
-
-# Collections
-GET /content/collections/{key}         # Paginated items
-GET /content/collections/{key}?sort=-title&filter[price][gte]=100
-POST /content/collections/{key}/batch  # Batch fetch by IDs or slugs (max 100)
-
-# Globals
-GET /content/globals/{slug}            # Single global
-GET /content/globals/                  # All globals (batch)
-
-# i18n
-GET /content/locales                   # Available locales
-GET /content/pages/{slug}/locales      # Translation completeness
-```
-
-**Sorting:** `?sort=-title`, `?sort=title:asc`
-**Filtering:** `?filter[field][op]=value` (eq, ne, gt, gte, lt, lte, contains, in)
-**Sparse Fields:** `?fields=title,slug,seo`
-**Pagination:** `?limit=20&offset=0` or cursor-based `?cursor=...`
-**Localization:** `?locale=de` with fallback chains (`de-AT` -> `de` -> `en`)
-
-## TypeScript SDK
-
-```bash
-npm install @contypio/client
-```
-
-```typescript
-import { createClient } from "@contypio/client";
-
-const client = createClient({
-  baseUrl: "https://cms.example.com",
-  locale: "de",  // optional default locale
-});
-
-// Pages
-const page = await client.pages.get("homepage");
-const tree = await client.pages.tree();
-
-// Batch
-const result = await client.pages.batch(["home", "about", "blog"]);
-// result.items (Page[]), result.missing (string[])
-
-// Collections with cursor pagination
-for await (const item of client.collections.iterate("blog-posts")) {
-  console.log(item.title);
-}
-
-// Collection batch
-const tours = await client.collections.batch("tours", { ids: [1, 2, 3] });
-
-// Globals
-const settings = await client.globals.get("site-settings");
-
-// Locales
-const { locales, default: defaultLocale } = await client.locales.list();
-```
-
-## Self-Hosting
-
-### Requirements
-
-- Docker + Docker Compose
-- 1 GB RAM minimum
-- PostgreSQL 17 (included in Docker setup)
-
-### Configuration
-
-All settings via `.env` file. See [`.env.example`](.env.example) for all options.
-
-| Variable | Default | Description |
-|---|---|---|
-| `CONTYPIO_PORT` | `3000` | Port for Admin UI + API |
-| `POSTGRES_PASSWORD` | - | Database password |
-| `SECRET_KEY` | - | JWT signing key |
-| `DEFAULT_ADMIN_EMAIL` | `admin@localhost` | First admin account |
-| `DEFAULT_ADMIN_PASSWORD` | `admin` | First admin password |
-| `SEED_DEMO` | `false` | Create demo content on first start |
-
-### Commands
-
-```bash
-docker compose up -d              # Start
-docker compose stop               # Stop
-docker compose logs -f api        # View logs
-docker compose down -v            # Reset everything
-```
-
-### Production with Reverse Proxy
-
-Put Caddy or Traefik in front for HTTPS. No port exposure needed:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
-```
-
-```caddyfile
-cms.example.com {
-    reverse_proxy contypio-api-1:8060
-}
-```
-
-See [`infrastructure/Caddyfile.example`](infrastructure/Caddyfile.example) for full examples.
-
-### Multiple Instances on One Server
-
-```bash
-# Each instance gets its own name, port, and database
-curl -fsSL https://get.contypio.com | bash -s -- --name client1 --port 3001
-curl -fsSL https://get.contypio.com | bash -s -- --name client2 --port 3002
-
-# Or behind reverse proxy (no ports exposed, Caddy routes by domain)
-COMPOSE_PROJECT_NAME=client1 docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
-COMPOSE_PROJECT_NAME=client2 docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
-```
-
-### Multi-Tenant (One Instance, Multiple Sites)
-
-Contypio is multi-tenant by default. One installation serves multiple websites.
-Configure tenant domains in the Admin UI. Tenant resolution:
-1. `X-Tenant` header (slug or domain)
-2. `Host` header matched against tenant domain
-3. Default tenant fallback
-
-### Backup
-
-```bash
-# Database dump (gzipped)
-docker compose exec postgres pg_dump -U contypio contypio | gzip > backup.sql.gz
-
-# Restore
-gunzip -c backup.sql.gz | docker compose exec -T postgres psql -U contypio contypio
-```
-
-## Development
-
-```bash
-# Start with dev overrides (hot-reload, DB port exposed)
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up
-
-# Admin + API:   http://localhost:3000
-# PostgreSQL:    localhost:7460
 ```
 
-### Without Docker
+Important paths:
 
-**Backend:**
-```bash
-cd backend
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-uvicorn app.main:app --host 0.0.0.0 --port 8060 --reload
-```
+- `backend/` FastAPI app, delivery API, auth, services, migrations
+- `frontend/` React admin UI built with Vite and TypeScript
+- `packages/contypio-client/` TypeScript SDK
+- `docs/astro-go-live/` launch planning, support matrix, issue backlog
 
-**Frontend:**
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### Tech stack
 
-## API Authentication
-
-| Endpoint | Auth | Description |
-|---|---|---|
-| `/content/*` | None | Public delivery API (read-only, published content) |
-| `/content/collections/*` | Optional API key | Scoped access per collection |
-| `/api/*` | JWT (Bearer) | Admin API (full CRUD) |
-
-**API key types:**
-
-| Type | Rate Limit | Use Case |
-|---|---|---|
-| `live` | 500 req/min | Production websites |
-| `build` | 2000 req/min | SSG builds (Astro, Next.js) |
-| No key | 100 req/min | Public access |
-
-```bash
-curl -H "Authorization: Bearer cms_abc123..." \
-  https://cms.example.com/content/collections/blog-posts
-```
-
-**Key rotation** with grace period:
-```bash
-POST /api/api-keys/{id}/rotate?grace_hours=24
-# Old key stays valid for 24h while you update your config
-```
-
-## Project Structure
-
-```
-contypio/
-  backend/                     FastAPI + Admin UI (single container)
-    app/
-      api/                     Admin API endpoints
-      auth/                    JWT + API key auth
-      core/                    Config, i18n, rate limiting
-      delivery/                Public Delivery API
-      middleware/               Security headers, CORS, audit log
-      models/                  SQLAlchemy models
-      services/                Business logic
-    migrations/                Alembic DB migrations
-    tests/                     53 tests
-  frontend/                    React Admin UI (built into backend image)
-  packages/
-    contypio-client/           TypeScript SDK (@contypio/client v0.3)
-  docker-compose.yml           Default setup (2 containers, port 3000)
-  docker-compose.dev.yml       Dev overrides (hot-reload, DB port)
-  docker-compose.production.yml  Behind reverse proxy (no ports)
-  install.sh                   One-command installer
-  .env.example                 All configuration options
-```
-
-## Security
-
-Hardened against OWASP API Security Top 10 (12 measures, 4 sprints):
-
-| Measure | Description |
+| Layer | Stack |
 |---|---|
-| **S1** Security Headers | CSP, X-Frame-Options, Permissions-Policy, X-Content-Type-Options |
-| **S2** HSTS | Strict-Transport-Security (Caddy primary, FastAPI fallback) |
-| **S3** CORS | Tenant-aware origins from DB, default deny-all |
-| **S4** Filter Allowlist | Schema-based validation, max 10 filters, depth 3 |
-| **S5** Key Hashing | SHA-256, no plaintext in DB |
-| **S6** Key Rotation | Grace period (old + new key valid during transition) |
-| **S7** Rate Limiting | Tiered: public 100/min, live 500/min, build 2000/min |
-| **S8** Webhook Security | HMAC-SHA256 v2 signatures, timestamp replay protection |
-| **S9** BOPLA | Internal fields stripped from all delivery responses |
-| **S10** Audit Trail | DB-persisted, GDPR IP anonymization, 90d retention |
-| **S11** Search Sanitization | LIKE pattern injection prevention |
-| **S12** Tenant Isolation | 41 tenant_id checks across all services |
+| Backend | FastAPI, SQLAlchemy, Alembic, PostgreSQL |
+| Frontend | React 19, TypeScript 5.9, Vite 8, Tailwind 4 |
+| SDK | TypeScript package with typed client access |
+| Infra | Docker Compose, optional reverse proxy for production |
 
-## License
+### Best fit
 
-Proprietary — (c) webideas24. All rights reserved.
+- Agencies running multiple customer websites
+- Teams wanting a self-hosted CMS with structured content and landing pages
+- Projects that need public content APIs and a typed frontend integration path
+
+### Less ideal if
+
+- You need a huge plugin marketplace today
+- You want a fully managed SaaS CMS with zero ops
+- You depend on an already finished Astro starter right now
+
+---
+
+## Deutsch
+
+Contypio verbindet schema-getriebenes Content Modeling, Page Builder, Delivery API und ein typisiertes Client-SDK in einem Stack. Das System ist fuer Teams gedacht, die mehr Struktur als bei WordPress wollen, aber weniger Plattformaufwand als bei einem grossen Enterprise-CMS.
+
+### Warum das System interessant ist
+
+- Inhalte ueber Collections und Singleton-Globals modellieren.
+- Landingpages und redaktionelle Seiten mit wiederverwendbaren Blocks bauen.
+- Inhalte ueber `/content/*` an Websites und Apps ausliefern.
+- Self-hosted mit Docker, PostgreSQL, FastAPI, React und TypeScript betreiben.
+
+### Produkt-Screenshots
+
+<p align="center">
+  <img src="docs/readme/screenshots/gui-login.png" alt="Contypio Login Screenshot" width="440" />
+  <img src="docs/readme/screenshots/gui-collections.png" alt="Contypio Collections Screenshot" width="440" />
+</p>
+
+<p align="center">
+  <img src="docs/readme/screenshots/gui-site-settings.png" alt="Contypio Site Settings Screenshot" width="440" />
+  <img src="docs/readme/screenshots/gui-page-editor.png" alt="Contypio Page Editor Screenshot" width="440" />
+</p>
+
+### Vorteile
+
+| Bereich | Vorteil |
+|---|---|
+| Produktansatz | Strukturierte Daten und visuelle Seitenerstellung in einem System |
+| Betrieb | Self-hosted, Docker-first, lokal ohne zusaetzliche nginx-Schicht startbar |
+| API | Oeffentliche Delivery API fuer Seiten, Collections, Globals, Locales und Batch-Endpunkte |
+| Frontend-Anbindung | TypeScript-SDK unter `packages/contypio-client` |
+| Plattform | Multi-Tenancy, Lokalisierung, Media-Handling und Admin-Oberflaeche in einem Repo |
+
+### Nachteile
+
+| Bereich | Nachteil |
+|---|---|
+| Oekosystem | Kleineres Oekosystem als WordPress, Strapi oder Directus |
+| Astro-Positionierung | Astro-Starter und oeffentliche Referenzintegration sind noch offene Arbeitspakete |
+| Reifegrad | Teile der Roadmap sind dokumentiert, aber noch nicht komplett produktisiert |
+| Einstieg | Fuer schnelles Onboarding fehlen noch mehr Starter, Demo-Flows und Referenzprojekte |
+
+### Schnellstart
+
+```bash
+cp .env.example .env
+docker compose up -d
+```
+
+Danach ist das System unter `http://localhost:3000` erreichbar.
+
+### Entwicklung
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+```
+
+Wichtige Pfade:
+
+- `backend/` FastAPI-App, Delivery API, Auth, Services, Migrationen
+- `frontend/` React-Admin mit Vite und TypeScript
+- `packages/contypio-client/` TypeScript-SDK
+- `docs/astro-go-live/` Astro-Go-Live-Planung, Support-Matrix und Issue-Backlog
+
+### Geeignet fuer
+
+- Agenturen mit mehreren Kundenprojekten
+- Teams, die strukturierte Inhalte und visuelle Seiten in einem CMS brauchen
+- Projekte mit API-first-Auslieferung und typisiertem Frontend-Consumption-Path
+
+### Weniger geeignet, wenn
+
+- sofort ein grosses Plugin-Oekosystem benoetigt wird
+- ein komplett gemanagtes SaaS-CMS ohne Betriebsaufwand gesucht wird
+- heute schon ein fertig produktisierter Astro-Starter zwingend noetig ist

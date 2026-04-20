@@ -1,0 +1,56 @@
+<svg width="1200" height="680" viewBox="0 0 1200 680" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="680" rx="32" fill="#09131A"/>
+  <rect x="24" y="24" width="1152" height="632" rx="28" fill="url(#bg)"/>
+  <circle cx="164" cy="132" r="84" fill="#0F2D34"/>
+  <circle cx="1042" cy="548" r="112" fill="#16353E"/>
+  <rect x="78" y="84" width="324" height="132" rx="24" fill="#0F2027" stroke="#2DD4BF" stroke-opacity="0.28"/>
+  <text x="108" y="132" fill="#E6FFFA" font-family="Arial, sans-serif" font-size="42" font-weight="700">Contypio</text>
+  <text x="108" y="170" fill="#9EC7C3" font-family="Arial, sans-serif" font-size="20">Hybrid headless CMS</text>
+  <text x="108" y="198" fill="#9EC7C3" font-family="Arial, sans-serif" font-size="20">Collections + page builder + API</text>
+
+  <rect x="78" y="258" width="494" height="324" rx="28" fill="#10232B" stroke="#A7F3D0" stroke-opacity="0.18"/>
+  <rect x="106" y="290" width="166" height="20" rx="10" fill="#1F4C57"/>
+  <rect x="106" y="330" width="438" height="62" rx="18" fill="#0D1B22" stroke="#2DD4BF" stroke-opacity="0.2"/>
+  <rect x="126" y="348" width="120" height="14" rx="7" fill="#D1FAE5"/>
+  <rect x="126" y="370" width="188" height="10" rx="5" fill="#6EA5A0"/>
+  <rect x="106" y="408" width="210" height="146" rx="20" fill="#0C1A20"/>
+  <rect x="338" y="408" width="206" height="146" rx="20" fill="#0C1A20"/>
+  <rect x="126" y="432" width="80" height="12" rx="6" fill="#D1FAE5"/>
+  <rect x="126" y="456" width="140" height="10" rx="5" fill="#6EA5A0"/>
+  <rect x="126" y="482" width="158" height="10" rx="5" fill="#6EA5A0"/>
+  <rect x="126" y="508" width="110" height="26" rx="13" fill="#14B8A6"/>
+  <rect x="358" y="432" width="84" height="12" rx="6" fill="#D1FAE5"/>
+  <rect x="358" y="456" width="142" height="10" rx="5" fill="#6EA5A0"/>
+  <rect x="358" y="482" width="120" height="10" rx="5" fill="#6EA5A0"/>
+  <rect x="358" y="508" width="122" height="26" rx="13" fill="#0EA5E9"/>
+  <text x="106" y="274" fill="#D7FFFA" font-family="Arial, sans-serif" font-size="18" font-weight="700">Admin workspace</text>
+
+  <rect x="618" y="142" width="494" height="184" rx="28" fill="#10232B" stroke="#93C5FD" stroke-opacity="0.24"/>
+  <text x="648" y="176" fill="#E0F2FE" font-family="Arial, sans-serif" font-size="18" font-weight="700">Delivery API</text>
+  <rect x="648" y="198" width="434" height="40" rx="14" fill="#0C1A20"/>
+  <text x="668" y="224" fill="#C9F7FF" font-family="Courier New, monospace" font-size="18">GET /content/pages/home?locale=de</text>
+  <rect x="648" y="254" width="132" height="44" rx="14" fill="#0EA5E9"/>
+  <rect x="794" y="254" width="132" height="44" rx="14" fill="#14B8A6"/>
+  <rect x="940" y="254" width="142" height="44" rx="14" fill="#1D4ED8"/>
+  <text x="684" y="282" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="16" font-weight="700">Pages</text>
+  <text x="828" y="282" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="16" font-weight="700">Collections</text>
+  <text x="978" y="282" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="16" font-weight="700">Globals</text>
+
+  <rect x="618" y="358" width="494" height="224" rx="28" fill="#10232B" stroke="#FDE68A" stroke-opacity="0.22"/>
+  <text x="648" y="392" fill="#FEF3C7" font-family="Arial, sans-serif" font-size="18" font-weight="700">System strengths</text>
+  <rect x="648" y="418" width="208" height="58" rx="18" fill="#0C1A20"/>
+  <rect x="872" y="418" width="210" height="58" rx="18" fill="#0C1A20"/>
+  <rect x="648" y="492" width="208" height="58" rx="18" fill="#0C1A20"/>
+  <rect x="872" y="492" width="210" height="58" rx="18" fill="#0C1A20"/>
+  <text x="672" y="450" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="18" font-weight="700">Self-hosted</text>
+  <text x="894" y="450" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="18" font-weight="700">Multi-tenant</text>
+  <text x="672" y="524" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="18" font-weight="700">Typed SDK</text>
+  <text x="894" y="524" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="18" font-weight="700">Localization</text>
+
+  <defs>
+    <linearGradient id="bg" x1="40" y1="30" x2="1160" y2="650" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B1720"/>
+      <stop offset="1" stop-color="#10242E"/>
+    </linearGradient>
+  </defs>
+</svg>
