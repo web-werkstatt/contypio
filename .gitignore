@@ -29,3 +29,24 @@ Thumbs.db
 
 # Uploads (runtime data)
 uploads/
+
+# Internal handoff / coordination notes
+CLAUDE.md
+COORDINATION.md
+PLAN_REBRANDING_DOMAIN.md
+archiv-session.md
+next-session-archiv.md
+next-session.md
+
+# Internal agent / local tooling artifacts
+.claude/
+.codex
+.quality/
+project.json
+backend/project.json
+frontend/project.json
+hilfe-center/project.json
+packages/contypio-client/project.json
+
+# Internal planning worklogs
+sessions/sprints/
